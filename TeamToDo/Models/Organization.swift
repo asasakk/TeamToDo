@@ -9,12 +9,6 @@ struct Organization: Identifiable, Codable {
     var inviteCode: String
     var createdAt: Date
     
-    enum CodingKeys: String, CodingKey {
-        case id
-        case name
-        case ownerId
-        case memberIds
-        case inviteCode
-        case createdAt
-    }
+    // CodingKeys removed to allow @DocumentID to work correctly.
+    // Properties match Firestore field names automatically.
 }

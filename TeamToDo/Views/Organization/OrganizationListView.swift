@@ -1,8 +1,8 @@
 import SwiftUI
 
 struct OrganizationListView: View {
-    @StateObject private var orgManager = OrganizationManager()
-    @StateObject private var firebaseManager = FirebaseManager.shared
+    @EnvironmentObject var orgManager: OrganizationManager
+    @ObservedObject private var firebaseManager = FirebaseManager.shared
     @State private var showCreateOrg = false
     @State private var showJoinOrg = false
     @State private var newOrgName = ""
@@ -10,14 +10,22 @@ struct OrganizationListView: View {
     
     var body: some View {
         NavigationStack {
-            List(orgManager.organizations) { org in
-                NavigationLink(destination: ProjectListView(organization: org)) {
-                    VStack(alignment: .leading) {
-                        Text(org.name)
-                            .font(.headline)
-                        Text("メンバー: \(org.memberIds.count)名")
-                            .font(.caption)
-                            .foregroundStyle(.gray)
+            VStack {
+                if orgManager.organizations.isEmpty {
+                    ContentUnavailableView("所属している組織がありません", systemImage: "person.slash", description: Text("右上の＋ボタンから組織を作成または参加してください"))
+                } else {
+                    List {
+                        ForEach(orgManager.organizations) { org in
+                            NavigationLink(destination: Text("Detail for \(org.name)")) {
+                                VStack(alignment: .leading) {
+                                    Text(org.name)
+                                        .font(.headline)
+                                    Text("メンバー: \(org.memberIds.count)名")
+                                        .font(.caption)
+                                        .foregroundColor(.secondary)
+                                }
+                            }
+                        }
                     }
                 }
             }
@@ -35,9 +43,15 @@ struct OrganizationListView: View {
                     }
                 }
             }
-            .onAppear {
-                if let uid = firebaseManager.currentUser?.id {
-                    orgManager.fetchOrganizations(for: uid)
+            // onAppear fetch has been moved to ContentView to prevent freeze on tab switch
+            .toolbar {
+                ToolbarItem(placement: .navigationBarLeading) {
+                    Button("再接続") {
+                        if let uid = firebaseManager.currentUser?.id {
+                            orgManager.stopListening()
+                            orgManager.startListening(for: uid)
+                        }
+                    }
                 }
             }
             .alert("組織を作成", isPresented: $showCreateOrg) {

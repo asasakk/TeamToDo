@@ -2,7 +2,7 @@ import SwiftUI
 
 struct MemberSelectionView: View {
     let members: [AppUser]
-    @Binding var selectedAssigneeId: String?
+    @Binding var selectedAssigneeIds: Set<String>
     @Environment(\.dismiss) var dismiss
     @State private var searchText = ""
     
@@ -21,24 +21,34 @@ struct MemberSelectionView: View {
         NavigationStack {
             List {
                 Button {
-                    selectedAssigneeId = nil
-                    dismiss()
+                    if selectedAssigneeIds.count == members.count {
+                        selectedAssigneeIds.removeAll()
+                    } else {
+                        selectedAssigneeIds = Set(members.compactMap { $0.id })
+                    }
                 } label: {
                     HStack {
-                        Text("未割り当て")
+                        Text(selectedAssigneeIds.count == members.count ? "すべて解除" : "全員を選択")
                             .foregroundColor(.primary)
-                        if selectedAssigneeId == nil {
-                            Spacer()
-                            Image(systemName: "checkmark")
+                        Spacer()
+                        if selectedAssigneeIds.count == members.count {
+                            Image(systemName: "checkmark.circle.fill")
                                 .foregroundColor(.blue)
+                        } else {
+                            Image(systemName: "circle")
+                                .foregroundColor(.gray)
                         }
                     }
                 }
                 
                 ForEach(filteredMembers) { member in
                     Button {
-                        selectedAssigneeId = member.id
-                        dismiss()
+                        guard let id = member.id else { return }
+                        if selectedAssigneeIds.contains(id) {
+                            selectedAssigneeIds.remove(id)
+                        } else {
+                            selectedAssigneeIds.insert(id)
+                        }
                     } label: {
                         HStack {
                             VStack(alignment: .leading) {
@@ -49,22 +59,25 @@ struct MemberSelectionView: View {
                                     .foregroundColor(.gray)
                             }
                             
-                            if selectedAssigneeId == member.id {
-                                Spacer()
-                                Image(systemName: "checkmark")
-                                    .foregroundColor(.blue)
+                            Spacer()
+                            
+                            if let id = member.id {
+                                Image(systemName: selectedAssigneeIds.contains(id) ? "checkmark.circle.fill" : "circle")
+                                    .foregroundColor(selectedAssigneeIds.contains(id) ? .blue : .gray)
                             }
                         }
                     }
+                    .buttonStyle(.plain)
                 }
             }
             .searchable(text: $searchText, prompt: "メンバーを検索")
-            .navigationTitle("担当者を選択")
+            .navigationTitle("担当者を選択 (複数可)")
             .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("キャンセル") { dismiss() }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("完了") { dismiss() }
                 }
             }
         }
     }
 }
+

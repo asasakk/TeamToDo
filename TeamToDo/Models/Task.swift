@@ -12,15 +12,8 @@ struct AppTask: Identifiable, Codable {
     var createdAt: Date
     var updatedAt: Date?
     
-    enum CodingKeys: String, CodingKey {
-        case id
-        case title
-        case description
-        case dueDate
-        case isCompleted
-        case assignedTo
-        case createdBy
-        case createdAt
-        case updatedAt
-    }
+    // Client-side only property for Collection Group queries
+    var projectId: String?
+    
+    // CodingKeys removed to allow @DocumentID to work correctly.
 }

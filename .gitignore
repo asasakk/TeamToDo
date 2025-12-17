@@ -39,3 +39,12 @@ fastlane/test_output
 
 # Sensitive Data
 GoogleService-Info.plist
+
+# Node.js
+node_modules/
+npm-debug.log
+yarn-error.log
+
+# Firebase
+firebase-debug.log
+.firebase/

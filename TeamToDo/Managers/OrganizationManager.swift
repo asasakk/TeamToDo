@@ -6,22 +6,47 @@ import FirebaseFirestore
 class OrganizationManager: ObservableObject {
     @Published var organizations: [Organization] = []
     private let db = Firestore.firestore()
+    private var listenerRegistration: ListenerRegistration?
     
-    func fetchOrganizations(for userId: String) {
-        db.collection("organizations")
+    deinit {
+        listenerRegistration?.remove()
+    }
+    
+    func startListening(for userId: String) {
+        // Prevent multiple listeners
+        if listenerRegistration != nil { return }
+        
+        print("DEBUG: Included in startListening for user: \(userId)")
+        
+        listenerRegistration = db.collection("organizations")
             .whereField("memberIds", arrayContains: userId)
             .addSnapshotListener { [weak self] snapshot, error in
-                Task { @MainActor [weak self] in
-                    guard let documents = snapshot?.documents, error == nil else {
-                        print("Error fetching organizations: \(error?.localizedDescription ?? "Unknown error")")
-                        return
-                    }
-                    
-                    self?.organizations = documents.compactMap { document in
+                guard let self = self else { return }
+                
+                if let error = error {
+                    print("Error fetching organizations: \(error.localizedDescription)")
+                    return
+                }
+                
+                guard let snapshot = snapshot else {
+                    print("Error: Snapshot is nil")
+                    return
+                }
+                
+                Task { @MainActor in
+                    let newOrganizations = snapshot.documents.compactMap { document -> Organization? in
                         try? document.data(as: Organization.self)
                     }
+                    
+                    self.organizations = newOrganizations
                 }
             }
+    }
+    
+    func stopListening() {
+        print("DEBUG: stopListening called")
+        listenerRegistration?.remove()
+        listenerRegistration = nil
     }
     
     func createOrganization(name: String, ownerId: String) async throws {

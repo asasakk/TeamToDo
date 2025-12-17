@@ -3,38 +3,87 @@ import SwiftUI
 struct TaskListView: View {
     let project: Project
     @StateObject private var taskManager = TaskManager()
+    @StateObject private var projectManager = ProjectManager() // Add ProjectManager
     @StateObject private var firebaseManager = FirebaseManager.shared
     @State private var projectMembers: [AppUser] = []
     @State private var showCreateTask = false
     @State private var showMemberSelection = false
+    @State private var showJoinProjectAlert = false // Add Join Alert State
     
     // New Task Inputs
     @State private var newTaskTitle = ""
     @State private var newTaskDescription = ""
     @State private var newTaskDueDate: Date = Date()
     @State private var hasDueDate = false
-    @State private var selectedAssigneeId: String?
+    @State private var selectedAssigneeIds: Set<String> = []
     
-    var sortedTasks: [AppTask] {
-        taskManager.tasks.sorted { t1, t2 in
-            // Uncompleted first, then by date desc
-            if t1.isCompleted != t2.isCompleted {
-                return !t1.isCompleted
-            }
-            return t1.createdAt > t2.createdAt
-        }
+    @State private var selectedFilterUserId: String? // nil = shows nothing or all? User requested "Default: Self, Select: Others". So init with currentUser.
+    
+    var filteredTasks: [AppTask] {
+        guard let filterId = selectedFilterUserId else { return [] }
+        return taskManager.tasks.filter { $0.assignedTo == filterId }
+    }
+    
+    var incompleteTasks: [AppTask] {
+        filteredTasks.filter { !$0.isCompleted }
+            .sorted { $0.createdAt > $1.createdAt }
+    }
+    
+    var completedTasks: [AppTask] {
+        filteredTasks.filter { $0.isCompleted }
+            .sorted { $0.createdAt > $1.createdAt }
     }
     
     var body: some View {
         List {
-            ForEach(sortedTasks) { task in
-                TaskRow(task: task, members: projectMembers) {
-                    toggleTaskStatus(task)
+            if !incompleteTasks.isEmpty {
+                Section(header: Text("未完了のタスク")) {
+                    ForEach(incompleteTasks) { task in
+                        TaskRow(task: task, members: projectMembers) {
+                            toggleTaskStatus(task)
+                        }
+                    }
                 }
+            }
+            
+            if !completedTasks.isEmpty {
+                Section(header: Text("完了済みのタスク")) {
+                   ForEach(completedTasks) { task in
+                       TaskRow(task: task, members: projectMembers) {
+                           toggleTaskStatus(task)
+                       }
+                   }
+                }
+            }
+            
+            if incompleteTasks.isEmpty && completedTasks.isEmpty {
+                Text("タスクがありません")
+                    .foregroundStyle(.gray)
+                    .padding()
             }
         }
         .navigationTitle(project.name)
         .toolbar {
+            ToolbarItem(placement: .navigationBarTrailing) {
+                Menu {
+                    Text("表示するメンバー")
+                    Divider()
+                    ForEach(projectMembers) { member in
+                        Button {
+                            selectedFilterUserId = member.id
+                        } label: {
+                            HStack {
+                                Text(member.displayName)
+                                if selectedFilterUserId == member.id {
+                                    Image(systemName: "checkmark")
+                                }
+                            }
+                        }
+                    }
+                } label: {
+                    Image(systemName: "line.3.horizontal.decrease.circle")
+                }
+            }
             ToolbarItem(placement: .navigationBarTrailing) {
                 Button(action: { showCreateTask = true }) {
                     Image(systemName: "plus")
@@ -63,13 +112,12 @@ struct TaskListView: View {
                             HStack {
                                 Text("担当者")
                                 Spacer()
-                                if let selectedId = selectedAssigneeId, 
-                                   let member = projectMembers.first(where: { $0.id == selectedId }) {
-                                    Text(member.displayName)
-                                        .foregroundColor(.primary)
-                                } else {
+                                if selectedAssigneeIds.isEmpty {
                                     Text("未割り当て")
                                         .foregroundColor(.gray)
+                                } else {
+                                    Text("\(selectedAssigneeIds.count)名選択中")
+                                        .foregroundColor(.primary)
                                 }
                             }
                         }
@@ -96,15 +144,46 @@ struct TaskListView: View {
                     }
                 }
                 .sheet(isPresented: $showMemberSelection) {
-                    MemberSelectionView(members: projectMembers, selectedAssigneeId: $selectedAssigneeId)
+                    MemberSelectionView(members: projectMembers, selectedAssigneeIds: $selectedAssigneeIds)
                 }
             }
+        }
+        .alert("プロジェクトに参加", isPresented: $showJoinProjectAlert) {
+            Button("参加する") {
+                joinProject()
+            }
+            Button("キャンセル", role: .cancel) {
+                // Optionally pop back? For now just dismiss alert.
+            }
+        } message: {
+            Text("このプロジェクトに参加してタスクを管理しますか？")
         }
     }
     
     private func loadMembers() {
         Task {
             projectMembers = await firebaseManager.fetchUsers(uids: project.memberIds)
+            // Default select current user if not set
+            if selectedFilterUserId == nil {
+                selectedFilterUserId = firebaseManager.currentUser?.id
+            }
+            
+            // Check if current user is a member
+            if let currentUid = firebaseManager.currentUser?.id {
+                if !project.memberIds.contains(currentUid) {
+                    showJoinProjectAlert = true
+                }
+            }
+        }
+    }
+    
+    private func joinProject() {
+        guard let projectId = project.id, let currentUid = firebaseManager.currentUser?.id else { return }
+        Task {
+            try? await projectManager.joinProject(projectId: projectId, userId: currentUid)
+            if let currentUser = firebaseManager.currentUser {
+                projectMembers.append(currentUser)
+            }
         }
     }
     
@@ -113,11 +192,9 @@ struct TaskListView: View {
         Task {
             try? await taskManager.updateTaskstatus(projectId: projectId, taskId: taskId, isCompleted: !task.isCompleted)
             if task.isCompleted {
-                // Was completed, now uncompleted -> check if we need to schedule
-                // But we don't have the full task with updated status here easily unless we fetch or assume.
-                // Simplification for now.
+                // Was completed, now uncompleted
             } else {
-                // Was uncompleted, now completed -> remove notification
+                // Was uncompleted, now completed
                 NotificationManager.shared.removeNotification(for: taskId)
             }
         }
@@ -127,35 +204,50 @@ struct TaskListView: View {
         guard let projectId = project.id, let currentUid = firebaseManager.currentUser?.id else { return }
         Task {
             do {
-                let taskId = try await taskManager.createTask(
-                    projectId: projectId,
-                    title: newTaskTitle,
-                    description: newTaskDescription.isEmpty ? nil : newTaskDescription,
-                    dueDate: hasDueDate ? newTaskDueDate : nil,
-                    assignedTo: selectedAssigneeId,
-                    createdBy: currentUid
-                )
-                
-                // If assigned to current user (or if we want to notify self when assigning to self), schedule notification
-                if let assignedTo = selectedAssigneeId, assignedTo == currentUid, hasDueDate {
-                    let taskForNotification = AppTask(
-                        id: taskId,
+                if selectedAssigneeIds.isEmpty {
+                    // Create single unassigned task
+                     _ = try await taskManager.createTask(
+                        projectId: projectId,
                         title: newTaskTitle,
-                        description: newTaskDescription,
-                        dueDate: newTaskDueDate,
-                        isCompleted: false,
-                        assignedTo: assignedTo,
-                        createdBy: currentUid,
-                        createdAt: Date()
+                        description: newTaskDescription.isEmpty ? nil : newTaskDescription,
+                        dueDate: hasDueDate ? newTaskDueDate : nil,
+                        assignedTo: nil,
+                        createdBy: currentUid
                     )
-                    NotificationManager.shared.scheduleNotification(for: taskForNotification)
+                } else {
+                    // Create task for each assignee
+                    for assigneeId in selectedAssigneeIds {
+                        let taskId = try await taskManager.createTask(
+                            projectId: projectId,
+                            title: newTaskTitle,
+                            description: newTaskDescription.isEmpty ? nil : newTaskDescription,
+                            dueDate: hasDueDate ? newTaskDueDate : nil,
+                            assignedTo: assigneeId,
+                            createdBy: currentUid
+                        )
+                        
+                        // If assigned to self, schedule notification
+                        if assigneeId == currentUid, hasDueDate {
+                            let taskForNotification = AppTask(
+                                id: taskId,
+                                title: newTaskTitle,
+                                description: newTaskDescription,
+                                dueDate: newTaskDueDate,
+                                isCompleted: false,
+                                assignedTo: assigneeId,
+                                createdBy: currentUid,
+                                createdAt: Date()
+                            )
+                            NotificationManager.shared.scheduleNotification(for: taskForNotification)
+                        }
+                    }
                 }
                 
                 // Reset fields
                 newTaskTitle = ""
                 newTaskDescription = ""
                 hasDueDate = false
-                selectedAssigneeId = nil
+                selectedAssigneeIds = []
                 
             } catch {
                 print("Error creating task: \(error)")
@@ -164,70 +256,4 @@ struct TaskListView: View {
     }
 }
 
-struct TaskRow: View {
-    let task: AppTask
-    let members: [AppUser]
-    let onToggle: () -> Void
-    
-    var assignedUser: AppUser? {
-        guard let assignedTo = task.assignedTo else { return nil }
-        return members.first { $0.id == assignedTo }
-    }
-    
-    var isOverdue: Bool {
-        guard let dueDate = task.dueDate, !task.isCompleted else { return false }
-        return dueDate < Date()
-    }
-    
-    var body: some View {
-        HStack(alignment: .top) {
-            Button(action: onToggle) {
-                Image(systemName: task.isCompleted ? "checkmark.circle.fill" : "circle")
-                    .foregroundColor(task.isCompleted ? .green : .gray)
-                    .font(.title2)
-            }
-            .buttonStyle(.plain)
-            
-            VStack(alignment: .leading, spacing: 4) {
-                Text(task.title)
-                    .font(.body)
-                    .strikethrough(task.isCompleted)
-                    .foregroundColor(task.isCompleted ? .gray : .primary)
-                
-                if let description = task.description, !description.isEmpty {
-                    Text(description)
-                        .font(.caption)
-                        .foregroundStyle(.gray)
-                        .lineLimit(2)
-                }
-                
-                HStack {
-                    if let assignedUser = assignedUser {
-                        HStack(spacing: 4) {
-                            Image(systemName: "person.circle.fill")
-                            Text(assignedUser.displayName)
-                        }
-                        .font(.caption2)
-                        .padding(4)
-                        .background(Color.blue.opacity(0.1))
-                        .cornerRadius(4)
-                    }
-                    
-                    if let dueDate = task.dueDate {
-                        HStack(spacing: 4) {
-                            Image(systemName: "calendar")
-                            Text(dueDate, style: .date)
-                            Text(dueDate, style: .time)
-                        }
-                        .font(.caption2)
-                        .padding(4)
-                        .background(isOverdue ? Color.red.opacity(0.1) : Color.gray.opacity(0.1))
-                        .foregroundColor(isOverdue ? .red : .primary)
-                        .cornerRadius(4)
-                    }
-                }
-            }
-        }
-        .padding(.vertical, 4)
-    }
-}
+

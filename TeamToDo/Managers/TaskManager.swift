@@ -56,4 +56,30 @@ class TaskManager: ObservableObject {
             "updatedAt": Date()
         ])
     }
+    
+    // 自分にアサインされたタスクを全プロジェクトから取得 (Collection Group Query)
+    func fetchAssignedTasks(for userId: String) {
+        db.collectionGroup("tasks")
+            .whereField("assignedTo", isEqualTo: userId)
+            .order(by: "createdAt", descending: true)
+            .addSnapshotListener { [weak self] snapshot, error in
+                Task { @MainActor [weak self] in
+                    guard let documents = snapshot?.documents, error == nil else {
+                        print("Error fetching assigned tasks: \(error?.localizedDescription ?? "Unknown error")")
+                        return
+                    }
+                    
+                    self?.tasks = documents.compactMap { document in
+                        var task = try? document.data(as: AppTask.self)
+                        // path: projects/{projectId}/tasks/{taskId}
+                        // document.reference.parent -> tasks collection
+                        // document.reference.parent.parent -> project document
+                        if let projectDoc = document.reference.parent.parent {
+                            task?.projectId = projectDoc.documentID
+                        }
+                        return task
+                    }
+                }
+            }
+    }
 }
