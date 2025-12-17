@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		467DE8CC2EF256E200510D92 /* FirebaseMessaging in Frameworks */ = {isa = PBXBuildFile; productRef = 467DE8CB2EF256E200510D92 /* FirebaseMessaging */; };
 		46C5FA002EF13E530093340D /* FirebaseAuth in Frameworks */ = {isa = PBXBuildFile; productRef = 46C5F9FF2EF13E530093340D /* FirebaseAuth */; };
 		46C5FA022EF13E530093340D /* FirebaseFirestore in Frameworks */ = {isa = PBXBuildFile; productRef = 46C5FA012EF13E530093340D /* FirebaseFirestore */; };
 /* End PBXBuildFile section */
@@ -28,6 +29,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				467DE8CC2EF256E200510D92 /* FirebaseMessaging in Frameworks */,
 				46C5FA002EF13E530093340D /* FirebaseAuth in Frameworks */,
 				46C5FA022EF13E530093340D /* FirebaseFirestore in Frameworks */,
 			);
@@ -36,10 +38,18 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		467DE8CA2EF256E200510D92 /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
 		46C5F9D12EF137860093340D = {
 			isa = PBXGroup;
 			children = (
 				46C5F9DC2EF137860093340D /* TeamToDo */,
+				467DE8CA2EF256E200510D92 /* Frameworks */,
 				46C5F9DB2EF137860093340D /* Products */,
 			);
 			sourceTree = "<group>";
@@ -74,6 +84,7 @@
 			packageProductDependencies = (
 				46C5F9FF2EF13E530093340D /* FirebaseAuth */,
 				46C5FA012EF13E530093340D /* FirebaseFirestore */,
+				467DE8CB2EF256E200510D92 /* FirebaseMessaging */,
 			);
 			productName = TeamToDo;
 			productReference = 46C5F9DA2EF137860093340D /* TeamToDo.app */;
@@ -263,6 +274,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = TeamToDo/TeamToDo.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = GSC539558F;
@@ -271,8 +283,9 @@
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
-				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
-				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = UIInterfaceOrientationPortrait;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";
+				IPHONEOS_DEPLOYMENT_TARGET = 18.1;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -295,6 +308,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = TeamToDo/TeamToDo.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = GSC539558F;
@@ -303,8 +317,9 @@
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
-				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
-				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = UIInterfaceOrientationPortrait;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";
+				IPHONEOS_DEPLOYMENT_TARGET = 18.1;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -357,6 +372,11 @@
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
+		467DE8CB2EF256E200510D92 /* FirebaseMessaging */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 46C5F9FE2EF13E530093340D /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseMessaging;
+		};
 		46C5F9FF2EF13E530093340D /* FirebaseAuth */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = 46C5F9FE2EF13E530093340D /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;

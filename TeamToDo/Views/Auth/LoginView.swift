@@ -82,7 +82,7 @@ struct LoginView: View {
             guard let uid = result?.user.uid else { return }
             
             // 下記でUserドキュメントを作成
-            let newUser = User(id: uid, email: email, displayName: displayName.isEmpty ? "No Name" : displayName)
+            let newUser = AppUser(id: uid, email: email, displayName: displayName.isEmpty ? "No Name" : displayName, fcmToken: nil, createdAt: Date())
             
             do {
                 try Firestore.firestore().collection("users").document(uid).setData(from: newUser)

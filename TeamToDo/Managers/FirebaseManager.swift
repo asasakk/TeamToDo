@@ -8,7 +8,7 @@ import FirebaseFirestore
 class FirebaseManager: ObservableObject {
     static let shared = FirebaseManager()
     
-    @Published var currentUser: User?
+    @Published var currentUser: AppUser?
     @Published var isUserLoggedIn = false
     
     private let db = Firestore.firestore()
@@ -17,12 +17,15 @@ class FirebaseManager: ObservableObject {
     init() {
         // ログイン状態を監視
         _ = auth.addStateDidChangeListener { [weak self] _, user in
-            if let user = user {
-                self?.isUserLoggedIn = true
-                self?.fetchCurrentUser(uid: user.uid)
-            } else {
-                self?.isUserLoggedIn = false
-                self?.currentUser = nil
+            Task { @MainActor [weak self] in
+                guard let self = self else { return }
+                if let user = user {
+                    self.isUserLoggedIn = true
+                    self.fetchCurrentUser(uid: user.uid)
+                } else {
+                    self.isUserLoggedIn = false
+                    self.currentUser = nil
+                }
             }
         }
     }
@@ -31,24 +34,69 @@ class FirebaseManager: ObservableObject {
     func fetchCurrentUser(uid: String) {
         let docRef = db.collection("users").document(uid)
         docRef.getDocument { [weak self] snapshot, error in
-            if let error = error {
-                print("Error fetching user: \(error)")
-                return
-            }
-            
-            guard let snapshot = snapshot, snapshot.exists else {
-                print("User document does not exist")
-                return
-            }
-            
-            do {
-                self?.currentUser = try snapshot.data(as: User.self)
-            } catch {
-                print("Error decoding user: \(error)")
+            Task { @MainActor [weak self] in
+                if let error = error {
+                    print("Error fetching user: \(error)")
+                    return
+                }
+                
+                guard let snapshot = snapshot, snapshot.exists else {
+                    print("User document does not exist")
+                    return
+                }
+                
+                do {
+                    self?.currentUser = try snapshot.data(as: AppUser.self)
+                } catch {
+                    print("Error decoding user: \(error)")
+                }
             }
         }
     }
     
+    func updateFCMToken(_ token: String) async {
+        guard let uid = auth.currentUser?.uid else { return }
+        do {
+            try await db.collection("users").document(uid).updateData([
+                "fcmToken": token
+            ])
+            print("FCM Token updated")
+        } catch {
+            print("Error updating FCM token: \(error)")
+        }
+    }
+    
+    // 複数のユーザー情報を取得
+    func fetchUsers(uids: [String]) async -> [AppUser] {
+        guard !uids.isEmpty else { return [] }
+        
+        // Firestore 'in' query supports up to 10 items.
+        // For production, we need to batch this. For now, we'll loop or use chunks if needed.
+        // Assuming small team size for MVP.
+        
+        do {
+            // chunk into 10s
+            var users: [AppUser] = []
+            let chunks = stride(from: 0, to: uids.count, by: 10).map {
+                Array(uids[$0..<min($0 + 10, uids.count)])
+            }
+            
+            for chunk in chunks {
+                let snapshot = try await db.collection("users")
+                    .whereField(FieldPath.documentID(), in: chunk)
+                    .getDocuments()
+                
+                let chunkUsers = snapshot.documents.compactMap { try? $0.data(as: AppUser.self) }
+                users.append(contentsOf: chunkUsers)
+            }
+            
+            return users
+        } catch {
+            print("Error fetching users: \(error)")
+            return []
+        }
+    }
+
     // ログアウト
     func signOut() {
         do {

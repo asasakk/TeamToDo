@@ -6,7 +6,7 @@ struct ContentView: View {
     var body: some View {
         Group {
             if firebaseManager.isUserLoggedIn {
-                TeamSelectionView()
+                OrganizationListView()
             } else {
                 LoginView()
             }
