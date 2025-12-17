@@ -1,24 +1,16 @@
-//
-//  ContentView.swift
-//  TeamToDo
-//
-//  Created by asai on 2025/12/16.
-//
-
 import SwiftUI
 
 struct ContentView: View {
+    @StateObject private var firebaseManager = FirebaseManager.shared
+    
     var body: some View {
-        VStack {
-            Image(systemName: "globe")
-                .imageScale(.large)
-                .foregroundStyle(.tint)
-            Text("Hello, world!")
+        Group {
+            if firebaseManager.isUserLoggedIn {
+                TeamSelectionView()
+            } else {
+                LoginView()
+            }
         }
-        .padding()
+        .animation(.easeInOut, value: firebaseManager.isUserLoggedIn)
     }
-}
-
-#Preview {
-    ContentView()
 }
