@@ -13,12 +13,14 @@ struct TaskListView: View {
     // New Task Inputs
     @State private var newTaskTitle = ""
     @State private var newTaskDescription = ""
-    @State private var newTaskDueDate: Date = Date()
+    @State private var newTaskDueDate: Date = Calendar.current.date(bySettingHour: 23, minute: 59, second: 0, of: Date()) ?? Date()
     @State private var hasDueDate = false
+    @State private var newTaskPriority: TaskPriority = .medium
     @State private var selectedAssigneeIds: Set<String> = []
     
     @State private var selectedTask: AppTask? // Add selectedTask state
     @State private var selectedFilterUserId: String? // nil = shows nothing or all? User requested "Default: Self, Select: Others". So init with currentUser.
+    @State private var isCompletedExpanded = true
     
     var filteredTasks: [AppTask] {
         guard let filterId = selectedFilterUserId else { return [] }
@@ -52,14 +54,27 @@ struct TaskListView: View {
             }
             
             if !completedTasks.isEmpty {
-                Section(header: Text("完了済みのタスク")) {
-                   ForEach(completedTasks) { task in
-                       TaskRow(task: task, members: projectMembers) {
-                           toggleTaskStatus(task)
-                       }
-                       .contentShape(Rectangle())
-                       .onTapGesture {
-                           selectedTask = task
+                Section(header: 
+                    Button(action: {
+                        withAnimation { isCompletedExpanded.toggle() }
+                    }) {
+                        HStack {
+                            Text("完了済みのタスク")
+                            Spacer()
+                            Image(systemName: isCompletedExpanded ? "chevron.down" : "chevron.right")
+                        }
+                    }
+                    .foregroundColor(.secondary)
+                ) {
+                   if isCompletedExpanded {
+                       ForEach(completedTasks) { task in
+                           TaskRow(task: task, members: projectMembers) {
+                               toggleTaskStatus(task)
+                           }
+                           .contentShape(Rectangle())
+                           .onTapGesture {
+                               selectedTask = task
+                           }
                        }
                    }
                 }
@@ -139,7 +154,17 @@ struct TaskListView: View {
                         Toggle("期限を設定", isOn: $hasDueDate)
                         if hasDueDate {
                             DatePicker("期限", selection: $newTaskDueDate, displayedComponents: [.date, .hourAndMinute])
+                                .environment(\.locale, Locale(identifier: "ja_JP"))
                         }
+                    }
+                    
+                    Section(header: Text("優先度")) {
+                        Picker("優先度", selection: $newTaskPriority) {
+                            ForEach(TaskPriority.allCases, id: \.self) { priority in
+                                Text(priority.rawValue).tag(priority)
+                            }
+                        }
+                        .pickerStyle(.segmented)
                     }
                 }
                 .navigationTitle("タスク作成")
@@ -224,7 +249,8 @@ struct TaskListView: View {
                         description: newTaskDescription.isEmpty ? nil : newTaskDescription,
                         dueDate: hasDueDate ? newTaskDueDate : nil,
                         assignedTo: nil,
-                        createdBy: currentUid
+                        createdBy: currentUid,
+                        priority: newTaskPriority
                     )
                 } else {
                     // Create task for each assignee
@@ -235,7 +261,8 @@ struct TaskListView: View {
                             description: newTaskDescription.isEmpty ? nil : newTaskDescription,
                             dueDate: hasDueDate ? newTaskDueDate : nil,
                             assignedTo: assigneeId,
-                            createdBy: currentUid
+                            createdBy: currentUid,
+                            priority: newTaskPriority
                         )
                         
                         // If assigned to self, schedule notification

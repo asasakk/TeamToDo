@@ -28,7 +28,7 @@ class TaskManager: ObservableObject {
             }
     }
     
-    func createTask(projectId: String, title: String, description: String?, dueDate: Date?, assignedTo: String?, createdBy: String) async throws -> String {
+    func createTask(projectId: String, title: String, description: String?, dueDate: Date?, assignedTo: String?, createdBy: String, priority: TaskPriority = .medium) async throws -> String {
         let task = AppTask(
             id: nil,
             title: title,
@@ -38,7 +38,8 @@ class TaskManager: ObservableObject {
             assignedTo: assignedTo,
             createdBy: createdBy,
             createdAt: Date(),
-            updatedAt: nil
+            updatedAt: nil,
+            priority: priority
         )
         
         let ref = try db.collection("projects").document(projectId).collection("tasks").addDocument(from: task)
@@ -59,10 +60,11 @@ class TaskManager: ObservableObject {
         ])
     }
     
-    func updateTask(projectId: String, taskId: String, title: String, description: String?, dueDate: Date?, assignedTo: String?) async throws {
+    func updateTask(projectId: String, taskId: String, title: String, description: String?, dueDate: Date?, assignedTo: String?, priority: TaskPriority) async throws {
         var data: [String: Any] = [
             "title": title,
-            "updatedAt": Date()
+            "updatedAt": Date(),
+            "priority": priority.rawValue
         ]
         
         if let description = description {
@@ -71,6 +73,8 @@ class TaskManager: ObservableObject {
         
         if let dueDate = dueDate {
             data["dueDate"] = dueDate
+        } else {
+             data["dueDate"] = FieldValue.delete()
         }
         
         if let assignedTo = assignedTo {

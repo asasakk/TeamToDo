@@ -42,4 +42,29 @@ class ProjectManager: ObservableObject {
             "memberIds": FieldValue.arrayUnion([userId])
         ])
     }
+    
+    func fetchProjects(ids: [String]) async -> [Project] {
+        guard !ids.isEmpty else { return [] }
+        
+        // Firestore 'in' query limit is 10. Chunking logic needed.
+        var allProjects: [Project] = []
+        let chunks = stride(from: 0, to: ids.count, by: 10).map {
+            Array(ids[$0..<min($0 + 10, ids.count)])
+        }
+        
+        do {
+            for chunk in chunks {
+                let snapshot = try await db.collection("projects")
+                    .whereField(FieldPath.documentID(), in: chunk)
+                    .getDocuments()
+                
+                let chunkProjects = snapshot.documents.compactMap { try? $0.data(as: Project.self) }
+                allProjects.append(contentsOf: chunkProjects)
+            }
+        } catch {
+            print("Error fetching projects by IDs: \(error)")
+        }
+        
+        return allProjects
+    }
 }

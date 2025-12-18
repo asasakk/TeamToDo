@@ -4,6 +4,7 @@ import FirebaseMessaging
 struct ContentView: View {
     @StateObject private var firebaseManager = FirebaseManager.shared
     @StateObject private var orgManager = OrganizationManager()
+    @AppStorage("isDarkMode") private var isDarkMode = false
     
     var body: some View {
         Group {
@@ -19,30 +20,10 @@ struct ContentView: View {
                             Label("チーム", systemImage: "person.3.fill")
                         }
                     
-                    VStack {
-                        Button("ログアウト") {
-                            firebaseManager.signOut()
-                        }
-                        .padding()
-                        
-                        Divider()
-                        
-                        Button("FCMトークンを更新 (Debug)") {
-                            Task {
-                                if let token = try? await Messaging.messaging().token() {
-                                    if let uid = firebaseManager.currentUser?.id {
-                                        await firebaseManager.updateFCMToken(token, uid: uid)
-                                    }
-                                }
-                            }
-                        }
-                        .padding()
-                    }
-                    .tabItem {
-                        Label("設定", systemImage: "gearshape.fill")
-                    }
+
                 }
                 .environmentObject(orgManager)
+                .preferredColorScheme(isDarkMode ? .dark : .light)
                 .onAppear {
                     if let uid = firebaseManager.currentUser?.id {
                         orgManager.startListening(for: uid)

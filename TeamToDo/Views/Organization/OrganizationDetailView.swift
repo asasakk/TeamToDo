@@ -38,6 +38,10 @@ struct OrganizationDetailView: View {
             
             ToolbarItem(placement: .navigationBarTrailing) {
                 Menu {
+                    NavigationLink(destination: OrganizationMemberListView(organization: organization)) {
+                        Label("メンバー一覧", systemImage: "person.2")
+                    }
+                    
                     Button("招待コードをコピー") {
                         UIPasteboard.general.string = organization.inviteCode
                     }

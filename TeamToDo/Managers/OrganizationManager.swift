@@ -49,6 +49,10 @@ class OrganizationManager: ObservableObject {
         listenerRegistration = nil
     }
     
+    func fetchMembers(for organization: Organization) async -> [AppUser] {
+        return await FirebaseManager.shared.fetchUsers(uids: organization.memberIds)
+    }
+    
     func createOrganization(name: String, ownerId: String) async throws {
         let inviteCode = String(UUID().uuidString.prefix(6)).uppercased()
         let organization = Organization(

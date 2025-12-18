@@ -1,9 +1,9 @@
 import Foundation
 import SwiftUI
 import Combine
-import FirebaseAuth
-import FirebaseMessaging
-import FirebaseFirestore
+@preconcurrency import FirebaseAuth
+@preconcurrency import FirebaseMessaging
+@preconcurrency import FirebaseFirestore
 
 @MainActor
 class FirebaseManager: ObservableObject {
@@ -18,11 +18,12 @@ class FirebaseManager: ObservableObject {
     init() {
         // ログイン状態を監視
         _ = auth.addStateDidChangeListener { [weak self] _, user in
+            let uid = user?.uid // Extract String which is Sendable
             Task { @MainActor [weak self] in
                 guard let self = self else { return }
-                if let user = user {
+                if let uid = uid {
                     self.isUserLoggedIn = true
-                    self.fetchCurrentUser(uid: user.uid)
+                    self.fetchCurrentUser(uid: uid)
                     
                     // ログイン時にFCMトークンを更新
                     Messaging.messaging().token { token, error in
@@ -30,7 +31,7 @@ class FirebaseManager: ObservableObject {
                             print("Error fetching FCM token: \(error)")
                         } else if let token = token {
                             Task {
-                                await self.updateFCMToken(token, uid: user.uid)
+                                await self.updateFCMToken(token, uid: uid)
                             }
                         }
                     }

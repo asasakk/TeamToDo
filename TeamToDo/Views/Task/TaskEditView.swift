@@ -10,6 +10,7 @@ struct TaskEditView: View {
     @State private var description: String
     @State private var dueDate: Date
     @State private var hasDueDate: Bool
+    @State private var priority: TaskPriority
     @State private var selectedAssigneeIds: Set<String> = []
     
     @State private var showMemberSelection = false
@@ -25,9 +26,12 @@ struct TaskEditView: View {
             _dueDate = State(initialValue: date)
             _hasDueDate = State(initialValue: true)
         } else {
-            _dueDate = State(initialValue: Date())
+            let endOfDay = Calendar.current.date(bySettingHour: 23, minute: 59, second: 0, of: Date()) ?? Date()
+            _dueDate = State(initialValue: endOfDay)
             _hasDueDate = State(initialValue: false)
         }
+        
+        _priority = State(initialValue: task.priority)
         
         if let assigneeId = task.assignedTo {
             _selectedAssigneeIds = State(initialValue: [assigneeId])
@@ -69,10 +73,20 @@ struct TaskEditView: View {
                     }
                 }
                 
+                Section(header: Text("優先度")) {
+                    Picker("優先度", selection: $priority) {
+                        ForEach(TaskPriority.allCases, id: \.self) { priority in
+                            Text(priority.rawValue).tag(priority)
+                        }
+                    }
+                    .pickerStyle(.segmented)
+                }
+                
                 Section(header: Text("期限")) {
                     Toggle("期限を設定", isOn: $hasDueDate)
                     if hasDueDate {
                         DatePicker("期限", selection: $dueDate, displayedComponents: [.date, .hourAndMinute])
+                            .environment(\.locale, Locale(identifier: "ja_JP"))
                     }
                 }
                 
@@ -111,7 +125,8 @@ struct TaskEditView: View {
                     title: title,
                     description: description.isEmpty ? nil : description,
                     dueDate: hasDueDate ? dueDate : nil,
-                    assignedTo: selectedAssigneeIds.first
+                    assignedTo: selectedAssigneeIds.first,
+                    priority: priority
                 )
                 dismiss()
             } catch {
