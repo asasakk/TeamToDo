@@ -8,6 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		467DE8CC2EF256E200510D92 /* FirebaseMessaging in Frameworks */ = {isa = PBXBuildFile; productRef = 467DE8CB2EF256E200510D92 /* FirebaseMessaging */; };
+		46AAB79C2EF3AD55002C8304 /* GoogleMobileAds in Frameworks */ = {isa = PBXBuildFile; productRef = 46AAB79B2EF3AD55002C8304 /* GoogleMobileAds */; };
 		46C5FA002EF13E530093340D /* FirebaseAuth in Frameworks */ = {isa = PBXBuildFile; productRef = 46C5F9FF2EF13E530093340D /* FirebaseAuth */; };
 		46C5FA022EF13E530093340D /* FirebaseFirestore in Frameworks */ = {isa = PBXBuildFile; productRef = 46C5FA012EF13E530093340D /* FirebaseFirestore */; };
 /* End PBXBuildFile section */
@@ -16,9 +17,22 @@
 		46C5F9DA2EF137860093340D /* TeamToDo.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = TeamToDo.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		46AAB7A12EF3ADFF002C8304 /* Exceptions for "TeamToDo" folder in "TeamToDo" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = 46C5F9D92EF137860093340D /* TeamToDo */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
+
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		46C5F9DC2EF137860093340D /* TeamToDo */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				46AAB7A12EF3ADFF002C8304 /* Exceptions for "TeamToDo" folder in "TeamToDo" target */,
+			);
 			path = TeamToDo;
 			sourceTree = "<group>";
 		};
@@ -29,6 +43,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				46AAB79C2EF3AD55002C8304 /* GoogleMobileAds in Frameworks */,
 				467DE8CC2EF256E200510D92 /* FirebaseMessaging in Frameworks */,
 				46C5FA002EF13E530093340D /* FirebaseAuth in Frameworks */,
 				46C5FA022EF13E530093340D /* FirebaseFirestore in Frameworks */,
@@ -85,6 +100,7 @@
 				46C5F9FF2EF13E530093340D /* FirebaseAuth */,
 				46C5FA012EF13E530093340D /* FirebaseFirestore */,
 				467DE8CB2EF256E200510D92 /* FirebaseMessaging */,
+				46AAB79B2EF3AD55002C8304 /* GoogleMobileAds */,
 			);
 			productName = TeamToDo;
 			productReference = 46C5F9DA2EF137860093340D /* TeamToDo.app */;
@@ -116,6 +132,7 @@
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
 				46C5F9FE2EF13E530093340D /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */,
+				46AAB79A2EF3AD55002C8304 /* XCRemoteSwiftPackageReference "swift-package-manager-google-mobile-ads" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 46C5F9DB2EF137860093340D /* Products */;
@@ -280,6 +297,7 @@
 				DEVELOPMENT_TEAM = GSC539558F;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = TeamToDo/Info.plist;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -309,11 +327,13 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = TeamToDo/TeamToDo.entitlements;
+				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = GSC539558F;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = TeamToDo/Info.plist;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -327,6 +347,7 @@
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = asai.TeamToDo;
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				PROVISIONING_PROFILE_SPECIFIER = "";
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
 				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
@@ -361,6 +382,14 @@
 /* End XCConfigurationList section */
 
 /* Begin XCRemoteSwiftPackageReference section */
+		46AAB79A2EF3AD55002C8304 /* XCRemoteSwiftPackageReference "swift-package-manager-google-mobile-ads" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/googleads/swift-package-manager-google-mobile-ads";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 12.14.0;
+			};
+		};
 		46C5F9FE2EF13E530093340D /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/firebase/firebase-ios-sdk";
@@ -376,6 +405,11 @@
 			isa = XCSwiftPackageProductDependency;
 			package = 46C5F9FE2EF13E530093340D /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
 			productName = FirebaseMessaging;
+		};
+		46AAB79B2EF3AD55002C8304 /* GoogleMobileAds */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 46AAB79A2EF3AD55002C8304 /* XCRemoteSwiftPackageReference "swift-package-manager-google-mobile-ads" */;
+			productName = GoogleMobileAds;
 		};
 		46C5F9FF2EF13E530093340D /* FirebaseAuth */ = {
 			isa = XCSwiftPackageProductDependency;

@@ -9,18 +9,22 @@ struct ContentView: View {
     var body: some View {
         Group {
             if firebaseManager.isUserLoggedIn {
-                TabView {
-                    MyTasksView()
-                        .tabItem {
-                            Label("ホーム", systemImage: "house.fill")
-                        }
+                VStack(spacing: 0) {
+                    TabView {
+                        MyTasksView()
+                            .tabItem {
+                                Label("ホーム", systemImage: "house.fill")
+                            }
+                        
+                        OrganizationListView()
+                            .tabItem {
+                                Label("チーム", systemImage: "person.3.fill")
+                            }
+                    }
                     
-                    OrganizationListView()
-                        .tabItem {
-                            Label("チーム", systemImage: "person.3.fill")
-                        }
-                    
-
+                    // AdMob Banner
+                    AdMobBannerView(adUnitID: "ca-app-pub-3940256099942544/2934735716") // Test ID
+                        .frame(height: 50)
                 }
                 .environmentObject(orgManager)
                 .preferredColorScheme(isDarkMode ? .dark : .light)

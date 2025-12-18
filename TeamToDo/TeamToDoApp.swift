@@ -1,5 +1,6 @@
 import SwiftUI
 import FirebaseCore
+import GoogleMobileAds
 
 import FirebaseMessaging
 import UserNotifications
@@ -9,6 +10,9 @@ class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDele
   func application(_ application: UIApplication,
                    didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey : Any]? = nil) -> Bool {
     
+    // Initialize Google Mobile Ads SDK
+    MobileAds.shared.start(completionHandler: nil)
+
     // plistの存在確認をしてから設定
     if Bundle.main.path(forResource: "GoogleService-Info", ofType: "plist") != nil {
         FirebaseApp.configure()
