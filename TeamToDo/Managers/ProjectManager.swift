@@ -43,6 +43,20 @@ class ProjectManager: ObservableObject {
         ])
     }
     
+    func archiveProject(_ project: Project) async throws {
+        guard let id = project.id else { return }
+        try await db.collection("projects").document(id).updateData([
+            "isArchived": true
+        ])
+    }
+    
+    func unarchiveProject(_ project: Project) async throws {
+        guard let id = project.id else { return }
+        try await db.collection("projects").document(id).updateData([
+            "isArchived": false
+        ])
+    }
+    
     func fetchProjects(ids: [String]) async -> [Project] {
         guard !ids.isEmpty else { return [] }
         

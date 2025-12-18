@@ -113,4 +113,28 @@ class TaskManager: ObservableObject {
                 }
             }
     }
+    
+    // プロジェクトのタスク進捗率を取得 (Aggregation Query)
+    func fetchProjectProgress(projectId: String) async -> (total: Int, completed: Int) {
+        let tasksRef = db.collection("projects").document(projectId).collection("tasks")
+        
+        do {
+            // 総タスク数
+            let totalCountQuery = tasksRef.count
+            let totalSnapshot = try await totalCountQuery.getAggregation(source: .server)
+            let total = Int(truncating: totalSnapshot.count)
+            
+            if total == 0 { return (0, 0) }
+            
+            // 完了タスク数
+            let completedCountQuery = tasksRef.whereField("isCompleted", isEqualTo: true).count
+            let completedSnapshot = try await completedCountQuery.getAggregation(source: .server)
+            let completed = Int(truncating: completedSnapshot.count)
+            
+            return (total, completed)
+        } catch {
+            print("Error fetching project progress: \(error)")
+            return (0, 0)
+        }
+    }
 }

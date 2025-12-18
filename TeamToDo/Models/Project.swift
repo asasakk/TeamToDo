@@ -8,6 +8,7 @@ struct Project: Identifiable, Codable {
     var description: String?
     var memberIds: [String]
     var createdAt: Date
+    var isArchived: Bool = false
     
     enum CodingKeys: String, CodingKey {
         case id
@@ -16,5 +17,6 @@ struct Project: Identifiable, Codable {
         case description
         case memberIds
         case createdAt
+        case isArchived
     }
 }

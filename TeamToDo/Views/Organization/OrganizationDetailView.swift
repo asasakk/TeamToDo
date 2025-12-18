@@ -7,21 +7,38 @@ struct OrganizationDetailView: View {
     @State private var showCreateProject = false
     @State private var newProjectName = ""
     @State private var newProjectDescription = ""
+    @State private var isArchivedExpanded = false
     
     var body: some View {
         List {
             if projectManager.projects.isEmpty {
                 ContentUnavailableView("プロジェクトがありません", systemImage: "folder.badge.questionmark", description: Text("右上の＋ボタンからプロジェクトを作成してください"))
             } else {
-                ForEach(projectManager.projects) { project in
-                    NavigationLink(destination: TaskListView(project: project)) {
-                        VStack(alignment: .leading) {
-                            Text(project.name)
-                                .font(.headline)
-                            if let desc = project.description, !desc.isEmpty {
-                                Text(desc)
-                                    .font(.subheadline)
-                                    .foregroundColor(.secondary)
+                // 進行中のプロジェクト
+                Section(header: Text("進行中")) {
+                    ForEach(activeProjects) { project in
+                        ProjectRowView(project: project)
+                    }
+                }
+                
+                // アーカイブ済みプロジェクト
+                if !archivedProjects.isEmpty {
+                    Section(header: 
+                        HStack {
+                            Text("アーカイブ済み (\(archivedProjects.count))")
+                            Spacer()
+                            Image(systemName: isArchivedExpanded ? "chevron.down" : "chevron.right")
+                        }
+                        .contentShape(Rectangle())
+                        .onTapGesture {
+                            withAnimation {
+                                isArchivedExpanded.toggle()
+                            }
+                        }
+                    ) {
+                        if isArchivedExpanded {
+                            ForEach(archivedProjects) { project in
+                                ProjectRowView(project: project)
                             }
                         }
                     }
@@ -98,5 +115,13 @@ struct OrganizationDetailView: View {
                 print("Error creating project: \(error)")
             }
         }
+    }
+    
+    private var activeProjects: [Project] {
+        projectManager.projects.filter { !$0.isArchived }
+    }
+    
+    private var archivedProjects: [Project] {
+        projectManager.projects.filter { $0.isArchived }
     }
 }
