@@ -30,7 +30,12 @@ class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDele
   }
 
   func application(_ application: UIApplication, didRegisterForRemoteNotificationsWithDeviceToken deviceToken: Data) {
+      print("APNS Token received: \(deviceToken)")
       Messaging.messaging().apnsToken = deviceToken
+  }
+    
+  func application(_ application: UIApplication, didFailToRegisterForRemoteNotificationsWithError error: Error) {
+      print("Failed to register for remote notifications: \(error)")
   }
     
   func messaging(_ messaging: Messaging, didReceiveRegistrationToken fcmToken: String?) {

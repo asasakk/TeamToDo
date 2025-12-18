@@ -1,4 +1,5 @@
 import SwiftUI
+import FirebaseMessaging
 
 struct ContentView: View {
     @StateObject private var firebaseManager = FirebaseManager.shared
