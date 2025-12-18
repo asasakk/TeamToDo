@@ -122,11 +122,12 @@
 				};
 			};
 			buildConfigurationList = 46C5F9D52EF137860093340D /* Build configuration list for PBXProject "TeamToDo" */;
-			developmentRegion = en;
+			developmentRegion = ja;
 			hasScannedForEncodings = 0;
 			knownRegions = (
 				en,
 				Base,
+				ja,
 			);
 			mainGroup = 46C5F9D12EF137860093340D;
 			minimizedProjectReferenceProxies = 1;

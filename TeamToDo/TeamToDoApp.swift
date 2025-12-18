@@ -75,14 +75,47 @@ class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDele
   }
 }
 
+import AppTrackingTransparency
+import AdSupport
+
 @main
 struct TeamToDoApp: App {
     // AppDelegateを接続
     @UIApplicationDelegateAdaptor(AppDelegate.self) var delegate
     
+    // ScenePhaseを利用してアプリアクティブ時にATTリクエストを送る
+    @Environment(\.scenePhase) private var scenePhase
+    
     var body: some Scene {
         WindowGroup {
             ContentView()
+                .onReceive(NotificationCenter.default.publisher(for: UIApplication.didBecomeActiveNotification)) { _ in
+                    requestTrackingAuthorization()
+                }
+        }
+    }
+    
+    private func requestTrackingAuthorization() {
+        // iOS 14以降でのみ実行
+        if #available(iOS 14, *) {
+            // 少し遅延させてからリクエスト（アプリ起動直後は表示されないことがあるため）
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+                ATTrackingManager.requestTrackingAuthorization { status in
+                    switch status {
+                    case .authorized:
+                        print("Authorized")
+                        print("IDFA: \(ASIdentifierManager.shared().advertisingIdentifier)")
+                    case .denied:
+                        print("Denied")
+                    case .restricted:
+                        print("Restricted")
+                    case .notDetermined:
+                        print("Not Determined")
+                    @unknown default:
+                        print("Unknown")
+                    }
+                }
+            }
         }
     }
 }
