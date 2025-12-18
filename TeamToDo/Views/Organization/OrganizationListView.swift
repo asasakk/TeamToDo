@@ -27,6 +27,7 @@ struct OrganizationListView: View {
                             }
                         }
                     }
+                    .listStyle(.plain)
                 }
             }
             .navigationTitle("組織選択")

@@ -1,7 +1,7 @@
 import Foundation
 import FirebaseFirestore
 
-struct Project: Identifiable, Codable {
+struct Project: Identifiable, Codable, Equatable {
     @DocumentID var id: String?
     var orgId: String
     var name: String

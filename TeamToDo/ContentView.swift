@@ -20,6 +20,11 @@ struct ContentView: View {
                             .tabItem {
                                 Label("チーム", systemImage: "person.3.fill")
                             }
+                        
+                        CalendarView()
+                            .tabItem {
+                                Label("カレンダー", systemImage: "calendar")
+                            }
                     }
                     
                     // AdMob Banner

@@ -45,6 +45,7 @@ struct OrganizationDetailView: View {
                 }
             }
         }
+        .listStyle(.plain)
         .navigationTitle(organization.name)
         .toolbar {
             ToolbarItem(placement: .navigationBarTrailing) {

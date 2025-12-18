@@ -9,6 +9,9 @@ struct TaskRow: View {
     // Optional project name to display (for Home screen)
     var projectName: String? = nil
     
+    // Color for the assignee icon/badge
+    var memberColor: Color? = nil
+    
     let onToggle: () -> Void
     
     var assignedUser: AppUser? {
@@ -47,11 +50,12 @@ struct TaskRow: View {
                     if let assignedUser = assignedUser {
                         HStack(spacing: 4) {
                             Image(systemName: "person.circle.fill")
+                                .foregroundColor(memberColor ?? .blue)
                             Text(assignedUser.displayName)
                         }
                         .font(.caption2)
                         .padding(4)
-                        .background(Color.blue.opacity(0.1))
+                        .background((memberColor ?? .blue).opacity(0.1))
                         .cornerRadius(4)
                     }
                     

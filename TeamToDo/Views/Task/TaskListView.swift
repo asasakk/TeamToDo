@@ -22,9 +22,14 @@ struct TaskListView: View {
     @State private var selectedFilterUserId: String? // nil = shows nothing or all? User requested "Default: Self, Select: Others". So init with currentUser.
     @State private var isCompletedExpanded = true
     
+
+    
     var filteredTasks: [AppTask] {
-        guard let filterId = selectedFilterUserId else { return [] }
-        return taskManager.tasks.filter { $0.assignedTo == filterId }
+        if let filterId = selectedFilterUserId {
+            return taskManager.tasks.filter { $0.assignedTo == filterId }
+        } else {
+            return taskManager.tasks
+        }
     }
     
     var incompleteTasks: [AppTask] {
@@ -38,59 +43,74 @@ struct TaskListView: View {
     }
     
     var body: some View {
-        List {
-            if !incompleteTasks.isEmpty {
-                Section(header: Text("未完了のタスク")) {
-                    ForEach(incompleteTasks) { task in
-                        TaskRow(task: task, members: projectMembers) {
-                            toggleTaskStatus(task)
-                        }
-                        .contentShape(Rectangle()) // Make the whole row tappable
-                        .onTapGesture {
-                            selectedTask = task
+        VStack(spacing: 0) {
+            List {
+                if !incompleteTasks.isEmpty {
+                    Section(header: Text("未完了のタスク")) {
+                        ForEach(incompleteTasks) { task in
+                            TaskRow(task: task, members: projectMembers, memberColor: Color.memberColor(userId: task.assignedTo)) {
+                                toggleTaskStatus(task)
+                            }
+                            .contentShape(Rectangle()) // Make the whole row tappable
+                            .onTapGesture {
+                                selectedTask = task
+                            }
                         }
                     }
                 }
-            }
-            
-            if !completedTasks.isEmpty {
-                Section(header: 
-                    Button(action: {
-                        withAnimation { isCompletedExpanded.toggle() }
-                    }) {
-                        HStack {
-                            Text("完了済みのタスク")
-                            Spacer()
-                            Image(systemName: isCompletedExpanded ? "chevron.down" : "chevron.right")
+                
+                if !completedTasks.isEmpty {
+                    Section(header: 
+                        Button(action: {
+                            withAnimation { isCompletedExpanded.toggle() }
+                        }) {
+                            HStack {
+                                Text("完了済みのタスク")
+                                Spacer()
+                                Image(systemName: isCompletedExpanded ? "chevron.down" : "chevron.right")
+                            }
                         }
-                    }
-                    .foregroundColor(.secondary)
-                ) {
-                   if isCompletedExpanded {
-                       ForEach(completedTasks) { task in
-                           TaskRow(task: task, members: projectMembers) {
-                               toggleTaskStatus(task)
-                           }
-                           .contentShape(Rectangle())
-                           .onTapGesture {
-                               selectedTask = task
+                        .foregroundColor(.secondary)
+                    ) {
+                       if isCompletedExpanded {
+                           ForEach(completedTasks) { task in
+                               TaskRow(task: task, members: projectMembers, memberColor: Color.memberColor(userId: task.assignedTo)) {
+                                   toggleTaskStatus(task)
+                               }
+                               .contentShape(Rectangle())
+                               .onTapGesture {
+                                   selectedTask = task
+                               }
                            }
                        }
-                   }
+                    }
+                }
+                
+                if incompleteTasks.isEmpty && completedTasks.isEmpty {
+                    Text("タスクがありません")
+                        .foregroundStyle(.gray)
+                        .padding()
                 }
             }
-            
-            if incompleteTasks.isEmpty && completedTasks.isEmpty {
-                Text("タスクがありません")
-                    .foregroundStyle(.gray)
-                    .padding()
-            }
+            .listStyle(.plain)
         }
         .navigationTitle(project.name)
         .toolbar {
             ToolbarItem(placement: .navigationBarTrailing) {
                 Menu {
                     Text("表示するメンバー")
+                    
+                    Button {
+                        selectedFilterUserId = nil
+                    } label: {
+                        HStack {
+                            Text("全員")
+                            if selectedFilterUserId == nil {
+                                Image(systemName: "checkmark")
+                            }
+                        }
+                    }
+                    
                     Divider()
                     ForEach(projectMembers) { member in
                         Button {

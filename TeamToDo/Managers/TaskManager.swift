@@ -137,4 +137,49 @@ class TaskManager: ObservableObject {
             return (0, 0)
         }
     }
+
+    
+    // 複数プロジェクトのタスクを監視
+    private var listeners: [ListenerRegistration] = []
+    
+    func fetchTasks(for projectIds: [String]) {
+        // 既存のリスナーを解除
+        listeners.forEach { $0.remove() }
+        listeners.removeAll()
+        self.tasks = []
+        
+        guard !projectIds.isEmpty else { return }
+        
+        for projectId in projectIds {
+            let listener = db.collection("projects").document(projectId).collection("tasks")
+                .order(by: "createdAt", descending: true)
+                .addSnapshotListener { [weak self] snapshot, error in
+                    Task { @MainActor [weak self] in
+                        guard let self = self else { return }
+                        guard let documents = snapshot?.documents, error == nil else {
+                            print("Error fetching tasks for project \(projectId): \(error?.localizedDescription ?? "Unknown error")")
+                            return
+                        }
+                        
+                        let projectTasks = documents.compactMap { document -> AppTask? in
+                            var task = try? document.data(as: AppTask.self)
+                            task?.projectId = projectId
+                            return task
+                        }
+                        
+                        // 既存のタスクリストから、このプロジェクトのタスクを除外して、新しいタスクを追加（マージ）
+                        var currentTasks = self.tasks.filter { $0.projectId != projectId }
+                        currentTasks.append(contentsOf: projectTasks)
+                        
+                        // 日付順などでソートしたい場合はここで
+                        self.tasks = currentTasks.sorted { ($0.createdAt ) > ($1.createdAt ) }
+                    }
+                }
+            listeners.append(listener)
+        }
+    }
+    
+    deinit {
+        listeners.forEach { $0.remove() }
+    }
 }

@@ -14,7 +14,7 @@ struct MyTasksView: View {
                 if !overdueTasks.isEmpty {
                     Section(header: Text("期限切れ").foregroundColor(.red)) {
                         ForEach(overdueTasks) { task in
-                            TaskRow(task: task, projectName: projectMap[task.projectId ?? ""]) { toggleTaskStatus(task) }
+                            TaskRow(task: task, projectName: projectMap[task.projectId ?? ""], memberColor: getMemberColor(for: task)) { toggleTaskStatus(task) }
                         }
                     }
                 }
@@ -22,7 +22,7 @@ struct MyTasksView: View {
                 if !todayTasks.isEmpty {
                     Section(header: Text("今日")) {
                         ForEach(todayTasks) { task in
-                            TaskRow(task: task, projectName: projectMap[task.projectId ?? ""]) { toggleTaskStatus(task) }
+                            TaskRow(task: task, projectName: projectMap[task.projectId ?? ""], memberColor: getMemberColor(for: task)) { toggleTaskStatus(task) }
                         }
                     }
                 }
@@ -30,7 +30,7 @@ struct MyTasksView: View {
                 if !upcomingTasks.isEmpty {
                     Section(header: Text("明日以降")) {
                         ForEach(upcomingTasks) { task in
-                            TaskRow(task: task, projectName: projectMap[task.projectId ?? ""]) { toggleTaskStatus(task) }
+                            TaskRow(task: task, projectName: projectMap[task.projectId ?? ""], memberColor: getMemberColor(for: task)) { toggleTaskStatus(task) }
                         }
                     }
                 }
@@ -38,7 +38,7 @@ struct MyTasksView: View {
                 if !noDateTasks.isEmpty {
                     Section(header: Text("期限なし")) {
                         ForEach(noDateTasks) { task in
-                            TaskRow(task: task, projectName: projectMap[task.projectId ?? ""]) { toggleTaskStatus(task) }
+                            TaskRow(task: task, projectName: projectMap[task.projectId ?? ""], memberColor: getMemberColor(for: task)) { toggleTaskStatus(task) }
                         }
                     }
                 }
@@ -58,7 +58,7 @@ struct MyTasksView: View {
                     ) {
                         if isCompletedExpanded {
                             ForEach(completedTasks) { task in
-                                TaskRow(task: task, projectName: projectMap[task.projectId ?? ""]) { toggleTaskStatus(task) }
+                                TaskRow(task: task, projectName: projectMap[task.projectId ?? ""], memberColor: getMemberColor(for: task)) { toggleTaskStatus(task) }
                             }
                         }
                     }
@@ -70,6 +70,7 @@ struct MyTasksView: View {
                         .padding()
                 }
             }
+            .listStyle(.plain)
             .navigationTitle("ホーム (自分のタスク)")
             .onAppear {
                 if let uid = firebaseManager.currentUser?.id {
@@ -97,6 +98,11 @@ struct MyTasksView: View {
                 SettingsView()
             }
         }
+    }
+    
+    // Helper for color
+    private func getMemberColor(for task: AppTask) -> Color {
+        return Color.memberColor(userId: task.assignedTo)
     }
     
     private var sortedTasks: [AppTask] {
