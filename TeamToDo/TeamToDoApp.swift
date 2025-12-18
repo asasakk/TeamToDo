@@ -3,6 +3,7 @@ import FirebaseCore
 
 import FirebaseMessaging
 import UserNotifications
+import FirebaseAuth
 
 class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDelegate, MessagingDelegate {
   func application(_ application: UIApplication,
@@ -36,10 +37,32 @@ class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDele
       print("Firebase registration token: \(String(describing: fcmToken))")
       if let token = fcmToken {
           // FirebaseManager経由でTokenを保存
-          Task {
-              await FirebaseManager.shared.updateFCMToken(token)
+          if let uid = FirebaseManager.shared.auth.currentUser?.uid {
+              Task {
+                  await FirebaseManager.shared.updateFCMToken(token, uid: uid)
+              }
+          } else {
+              print("FCM Token received but no user logged in.")
           }
       }
+  }
+
+  // フォアグラウンドでも通知を表示する
+  func userNotificationCenter(_ center: UNUserNotificationCenter,
+                              willPresent notification: UNNotification,
+                              withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void) {
+      let userInfo = notification.request.content.userInfo
+      print("Will present notification: \(userInfo)")
+      completionHandler([.banner, .badge, .sound])
+  }
+
+  // 通知タップ時の処理
+  func userNotificationCenter(_ center: UNUserNotificationCenter,
+                              didReceive response: UNNotificationResponse,
+                              withCompletionHandler completionHandler: @escaping () -> Void) {
+      let userInfo = response.notification.request.content.userInfo
+      print("Did receive response: \(userInfo)")
+      completionHandler()
   }
 }
 

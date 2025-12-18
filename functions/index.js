@@ -29,16 +29,21 @@ exports.onTaskAssigned = onDocumentCreated("projects/{projectId}/tasks/{taskId}"
   try {
     // 担当者の情報を取得
     const userDoc = await admin.firestore().collection("users").doc(assignedTo).get();
+
+    console.log(`Fetching user for notification: ${assignedTo}`); // LOG UID
+
     if (!userDoc.exists) {
-      console.log("Assigned user not found");
+      console.log("Assigned user not found in Firestore");
       return;
     }
 
     const user = userDoc.data();
+    console.log("User data retrieved:", JSON.stringify(user)); // LOG USER DATA
+
     const fcmToken = user.fcmToken;
 
     if (!fcmToken) {
-      console.log("No FCM token for user");
+      console.log("No FCM token for user (field is missing or empty)");
       return;
     }
 

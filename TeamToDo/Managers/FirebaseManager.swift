@@ -2,6 +2,7 @@ import Foundation
 import SwiftUI
 import Combine
 import FirebaseAuth
+import FirebaseMessaging
 import FirebaseFirestore
 
 @MainActor
@@ -12,7 +13,7 @@ class FirebaseManager: ObservableObject {
     @Published var isUserLoggedIn = false
     
     private let db = Firestore.firestore()
-    private let auth = Auth.auth()
+    let auth = Auth.auth()
     
     init() {
         // ログイン状態を監視
@@ -22,6 +23,17 @@ class FirebaseManager: ObservableObject {
                 if let user = user {
                     self.isUserLoggedIn = true
                     self.fetchCurrentUser(uid: user.uid)
+                    
+                    // ログイン時にFCMトークンを更新
+                    Messaging.messaging().token { token, error in
+                        if let error = error {
+                            print("Error fetching FCM token: \(error)")
+                        } else if let token = token {
+                            Task {
+                                await self.updateFCMToken(token, uid: user.uid)
+                            }
+                        }
+                    }
                 } else {
                     self.isUserLoggedIn = false
                     self.currentUser = nil
@@ -54,13 +66,14 @@ class FirebaseManager: ObservableObject {
         }
     }
     
-    func updateFCMToken(_ token: String) async {
-        guard let uid = auth.currentUser?.uid else { return }
+    // uidを引数として受け取るように変更
+    func updateFCMToken(_ token: String, uid: String) async {
+        print("Attempting to update FCM token for user: \(uid)")
         do {
             try await db.collection("users").document(uid).updateData([
                 "fcmToken": token
             ])
-            print("FCM Token updated")
+            print("FCM Token updated successfully for \(uid)")
         } catch {
             print("Error updating FCM token: \(error)")
         }

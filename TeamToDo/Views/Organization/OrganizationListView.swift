@@ -16,7 +16,7 @@ struct OrganizationListView: View {
                 } else {
                     List {
                         ForEach(orgManager.organizations) { org in
-                            NavigationLink(destination: Text("Detail for \(org.name)")) {
+                            NavigationLink(destination: OrganizationDetailView(organization: org)) {
                                 VStack(alignment: .leading) {
                                     Text(org.name)
                                         .font(.headline)

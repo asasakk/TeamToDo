@@ -20,7 +20,9 @@ class TaskManager: ObservableObject {
                     }
                     
                     self?.tasks = documents.compactMap { document in
-                        try? document.data(as: AppTask.self)
+                        var task = try? document.data(as: AppTask.self)
+                        task?.projectId = projectId
+                        return task
                     }
                 }
             }
@@ -55,6 +57,31 @@ class TaskManager: ObservableObject {
             "assignedTo": userId,
             "updatedAt": Date()
         ])
+    }
+    
+    func updateTask(projectId: String, taskId: String, title: String, description: String?, dueDate: Date?, assignedTo: String?) async throws {
+        var data: [String: Any] = [
+            "title": title,
+            "updatedAt": Date()
+        ]
+        
+        if let description = description {
+            data["description"] = description
+        }
+        
+        if let dueDate = dueDate {
+            data["dueDate"] = dueDate
+        }
+        
+        if let assignedTo = assignedTo {
+            data["assignedTo"] = assignedTo
+        }
+        
+        try await db.collection("projects").document(projectId).collection("tasks").document(taskId).updateData(data)
+    }
+    
+    func deleteTask(projectId: String, taskId: String) async throws {
+        try await db.collection("projects").document(projectId).collection("tasks").document(taskId).delete()
     }
     
     // 自分にアサインされたタスクを全プロジェクトから取得 (Collection Group Query)

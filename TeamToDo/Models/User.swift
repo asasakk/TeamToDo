@@ -1,19 +1,12 @@
 import Foundation
 import FirebaseFirestore
 
-struct AppUser: Identifiable, Codable {
+struct AppUser: Identifiable, Codable, Equatable {
     @DocumentID var id: String?
     var email: String
     var displayName: String
     var fcmToken: String?
     var createdAt: Date?
     
-    // Firestoreで使用するキー
-    enum CodingKeys: String, CodingKey {
-        case id
-        case email
-        case displayName
-        case fcmToken
-        case createdAt
-    }
+    // CodingKeys removed to allow @DocumentID to work correctly and to match other models.
 }

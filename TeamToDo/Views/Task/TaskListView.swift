@@ -17,6 +17,7 @@ struct TaskListView: View {
     @State private var hasDueDate = false
     @State private var selectedAssigneeIds: Set<String> = []
     
+    @State private var selectedTask: AppTask? // Add selectedTask state
     @State private var selectedFilterUserId: String? // nil = shows nothing or all? User requested "Default: Self, Select: Others". So init with currentUser.
     
     var filteredTasks: [AppTask] {
@@ -42,6 +43,10 @@ struct TaskListView: View {
                         TaskRow(task: task, members: projectMembers) {
                             toggleTaskStatus(task)
                         }
+                        .contentShape(Rectangle()) // Make the whole row tappable
+                        .onTapGesture {
+                            selectedTask = task
+                        }
                     }
                 }
             }
@@ -51,6 +56,10 @@ struct TaskListView: View {
                    ForEach(completedTasks) { task in
                        TaskRow(task: task, members: projectMembers) {
                            toggleTaskStatus(task)
+                       }
+                       .contentShape(Rectangle())
+                       .onTapGesture {
+                           selectedTask = task
                        }
                    }
                 }
@@ -96,6 +105,9 @@ struct TaskListView: View {
             }
             loadMembers()
             NotificationManager.shared.requestAuthorization()
+        }
+        .sheet(item: $selectedTask) { task in
+            TaskEditView(task: task, projectMembers: projectMembers, taskManager: taskManager)
         }
         .sheet(isPresented: $showCreateTask) {
             NavigationStack {
