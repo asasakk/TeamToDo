@@ -5,6 +5,7 @@ import FirebaseFirestore
 @MainActor
 class OrganizationManager: ObservableObject {
     @Published var organizations: [Organization] = []
+    @Published var pendingInviteCode: String?
     private let db = Firestore.firestore()
     private var listenerRegistration: ListenerRegistration?
     
@@ -53,7 +54,7 @@ class OrganizationManager: ObservableObject {
         return await FirebaseManager.shared.fetchUsers(uids: organization.memberIds)
     }
     
-    func createOrganization(name: String, ownerId: String) async throws {
+    func createOrganization(name: String, ownerId: String, password: String? = nil) async throws {
         let inviteCode = String(UUID().uuidString.prefix(6)).uppercased()
         let organization = Organization(
             id: nil,
@@ -61,10 +62,35 @@ class OrganizationManager: ObservableObject {
             ownerId: ownerId,
             memberIds: [ownerId],
             inviteCode: inviteCode,
+            password: password,
             createdAt: Date()
         )
         
         try db.collection("organizations").addDocument(from: organization)
+    }
+    
+    // 招待コードから組織情報を取得（参加前の確認用）
+    func getOrganizationByInviteCode(_ inviteCode: String) async throws -> Organization {
+        let snapshot = try await db.collection("organizations")
+            .whereField("inviteCode", isEqualTo: inviteCode)
+            .getDocuments()
+        
+        guard let document = snapshot.documents.first else {
+            throw NSError(domain: "OrganizationManager", code: 404, userInfo: [NSLocalizedDescriptionKey: "無効な招待コードです"])
+        }
+        
+        return try document.data(as: Organization.self)
+    }
+    
+    // パスワードの更新（空文字またはnilで削除）
+    func updateOrganizationPassword(orgId: String, password: String?) async throws {
+        let data: [String: Any]
+        if let password = password, !password.isEmpty {
+            data = ["password": password]
+        } else {
+            data = ["password": FieldValue.delete()]
+        }
+        try await db.collection("organizations").document(orgId).updateData(data)
     }
     
     func joinOrganization(inviteCode: String, userId: String) async throws {
@@ -73,11 +99,23 @@ class OrganizationManager: ObservableObject {
             .getDocuments()
         
         guard let document = snapshot.documents.first else {
-            throw NSError(domain: "OrganizationManager", code: 404, userInfo: [NSLocalizedDescriptionKey: "Invalid invite code"])
+            throw NSError(domain: "OrganizationManager", code: 404, userInfo: [NSLocalizedDescriptionKey: "無効な招待コードです"])
+        }
+        
+        // Check if already a member
+        if let organization = try? document.data(as: Organization.self),
+            organization.memberIds.contains(userId) {
+            throw NSError(domain: "OrganizationManager", code: 409, userInfo: [NSLocalizedDescriptionKey: "すでにこの組織に参加しています"])
         }
         
         try await document.reference.updateData([
             "memberIds": FieldValue.arrayUnion([userId])
+        ])
+    }
+    
+    func leaveOrganization(orgId: String, userId: String) async throws {
+        try await db.collection("organizations").document(orgId).updateData([
+            "memberIds": FieldValue.arrayRemove([userId])
         ])
     }
 }

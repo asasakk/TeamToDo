@@ -86,12 +86,29 @@ struct TeamToDoApp: App {
     // ScenePhaseを利用してアプリアクティブ時にATTリクエストを送る
     @Environment(\.scenePhase) private var scenePhase
     
+    @StateObject private var orgManager = OrganizationManager()
+    
     var body: some Scene {
         WindowGroup {
             ContentView()
+                .environmentObject(orgManager)
                 .onReceive(NotificationCenter.default.publisher(for: UIApplication.didBecomeActiveNotification)) { _ in
                     requestTrackingAuthorization()
                 }
+                .onOpenURL { url in
+                    handleDeepLink(url)
+                }
+        }
+    }
+    
+    private func handleDeepLink(_ url: URL) {
+        // Scheme: teamtodo://join?code=XXXXXX
+        guard url.scheme == "teamtodo", url.host == "join" else { return }
+        
+        let components = URLComponents(url: url, resolvingAgainstBaseURL: true)
+        if let code = components?.queryItems?.first(where: { $0.name == "code" })?.value {
+            print("Deep Link Invite Code: \(code)")
+            orgManager.pendingInviteCode = code
         }
     }
     

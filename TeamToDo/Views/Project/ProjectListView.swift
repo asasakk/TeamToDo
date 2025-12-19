@@ -3,6 +3,7 @@ import SwiftUI
 struct ProjectListView: View {
     let organization: Organization
     @StateObject private var projectManager = ProjectManager()
+    @ObservedObject private var firebaseManager = FirebaseManager.shared
     @State private var showCreateProject = false
     @State private var newProjectName = ""
     @State private var newProjectDescription = ""

@@ -10,6 +10,7 @@ class ProjectManager: ObservableObject {
     func fetchProjects(for orgId: String) {
         db.collection("projects")
             .whereField("orgId", isEqualTo: orgId)
+            //.whereField("memberIds", arrayContains: userId) // Removed based on user request to see all projects
             .addSnapshotListener { [weak self] snapshot, error in
                 Task { @MainActor [weak self] in
                     guard let documents = snapshot?.documents, error == nil else {

@@ -5,8 +5,17 @@ struct OrganizationListView: View {
     @ObservedObject private var firebaseManager = FirebaseManager.shared
     @State private var showCreateOrg = false
     @State private var showJoinOrg = false
+    @State private var showPasswordInput = false // パスワード入力アラート表示用
+    
     @State private var newOrgName = ""
+    @State private var newOrgPassword = "" // 新規作成時のパスワード
+    
     @State private var inviteCodeInput = ""
+    @State private var inputPassword = "" // 参加時のパスワード入力
+    @State private var tempOrganization: Organization? // パスワードチェック待ちの組織
+    
+    @State private var showErrorAlert = false
+    @State private var errorMessage = ""
     
     var body: some View {
         NavigationStack {
@@ -31,6 +40,12 @@ struct OrganizationListView: View {
                 }
             }
             .navigationTitle("組織選択")
+            .onAppear {
+                checkPendingInvite()
+            }
+            .onChange(of: orgManager.pendingInviteCode) { _ in
+                checkPendingInvite()
+            }
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Menu {
@@ -43,9 +58,7 @@ struct OrganizationListView: View {
                         Image(systemName: "plus")
                     }
                 }
-            }
-            // onAppear fetch has been moved to ContentView to prevent freeze on tab switch
-            .toolbar {
+                
                 ToolbarItem(placement: .navigationBarLeading) {
                     Button("再接続") {
                         if let uid = firebaseManager.currentUser?.id {
@@ -55,30 +68,103 @@ struct OrganizationListView: View {
                     }
                 }
             }
+            
+            // 組織作成アラート
             .alert("組織を作成", isPresented: $showCreateOrg) {
                 TextField("組織名", text: $newOrgName)
+                TextField("パスワード（任意）", text: $newOrgPassword)
                 Button("作成") {
                     Task {
-                        // TODO: Handle error properly
                         if let uid = firebaseManager.currentUser?.id {
-                            try? await orgManager.createOrganization(name: newOrgName, ownerId: uid)
+                            let pass = newOrgPassword.isEmpty ? nil : newOrgPassword
+                            try? await orgManager.createOrganization(name: newOrgName, ownerId: uid, password: pass)
                             newOrgName = ""
+                            newOrgPassword = ""
                         }
                     }
                 }
-                Button("キャンセル", role: .cancel) { }
+                Button("キャンセル", role: .cancel) {
+                    newOrgName = ""
+                    newOrgPassword = ""
+                }
             }
+            
+            // 組織参加アラート（コード入力）
             .alert("組織に参加", isPresented: $showJoinOrg) {
                 TextField("招待コード", text: $inviteCodeInput)
-                Button("参加") {
+                Button("次へ") {
                     Task {
-                        if let uid = firebaseManager.currentUser?.id {
-                            try? await orgManager.joinOrganization(inviteCode: inviteCodeInput, userId: uid)
-                            inviteCodeInput = ""
+                        do {
+                            // まず組織情報を取得して確認
+                            let org = try await orgManager.getOrganizationByInviteCode(inviteCodeInput)
+                            
+                            // パスワードがあるかチェック
+                            if let password = org.password, !password.isEmpty {
+                                tempOrganization = org
+                                showPasswordInput = true
+                            } else {
+                                // パスワードがない場合はそのまま参加
+                                if let uid = firebaseManager.currentUser?.id {
+                                    try await orgManager.joinOrganization(inviteCode: inviteCodeInput, userId: uid)
+                                    inviteCodeInput = ""
+                                }
+                            }
+                        } catch {
+                            errorMessage = error.localizedDescription
+                            showErrorAlert = true
                         }
                     }
                 }
-                Button("キャンセル", role: .cancel) { }
+                Button("キャンセル", role: .cancel) {
+                    orgManager.pendingInviteCode = nil
+                }
+            }
+            
+            // パスワード入力アラート
+            .alert("パスワードを入力", isPresented: $showPasswordInput) {
+                SecureField("パスワード", text: $inputPassword)
+                Button("参加") {
+                    Task {
+                        // パスワード照合
+                        if let org = tempOrganization, org.password == inputPassword {
+                            if let uid = firebaseManager.currentUser?.id {
+                                do {
+                                    try await orgManager.joinOrganization(inviteCode: inviteCodeInput, userId: uid)
+                                    inviteCodeInput = ""
+                                    inputPassword = ""
+                                    tempOrganization = nil
+                                } catch {
+                                    errorMessage = error.localizedDescription
+                                    showErrorAlert = true
+                                }
+                            }
+                        } else {
+                            errorMessage = "パスワードが間違っています"
+                            showErrorAlert = true
+                        }
+                    }
+                }
+                Button("キャンセル", role: .cancel) {
+                    inputPassword = ""
+                    tempOrganization = nil
+                    orgManager.pendingInviteCode = nil 
+                }
+            }
+            
+            .alert("エラー", isPresented: $showErrorAlert) {
+                Button("OK", role: .cancel) { }
+            } message: {
+                Text(errorMessage)
+            }
+        }
+    }
+    
+    private func checkPendingInvite() {
+        if let code = orgManager.pendingInviteCode {
+            // 少し遅延させないとAlertが表示されないことがあるため
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                inviteCodeInput = code
+                showJoinOrg = true
             }
         }
     }

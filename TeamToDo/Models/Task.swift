@@ -26,9 +26,16 @@ struct AppTask: Identifiable, Codable, Equatable {
     var createdAt: Date
     var updatedAt: Date?
     var priority: TaskPriority = .medium
+    var subtasks: [SubTask]? = []
     
     // Client-side only property for Collection Group queries
     var projectId: String?
+}
+
+struct SubTask: Identifiable, Codable, Equatable {
+    var id: String = UUID().uuidString
+    var title: String
+    var isCompleted: Bool = false
     
     // CodingKeys removed to allow @DocumentID to work correctly.
 }

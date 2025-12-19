@@ -7,6 +7,7 @@ struct Organization: Identifiable, Codable {
     var ownerId: String
     var memberIds: [String]
     var inviteCode: String
+    var password: String? // Added for optional organization password
     var createdAt: Date
     
     // CodingKeys removed to allow @DocumentID to work correctly.

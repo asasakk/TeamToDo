@@ -17,6 +17,9 @@ struct TaskListView: View {
     @State private var hasDueDate = false
     @State private var newTaskPriority: TaskPriority = .medium
     @State private var selectedAssigneeIds: Set<String> = []
+    @State private var newSubtasks: [SubTask] = []
+    @State private var newSubtaskTitle = ""
+    @State private var showLimitAlert = false
     
     @State private var selectedTask: AppTask? // Add selectedTask state
     @State private var selectedFilterUserId: String? // nil = shows nothing or all? User requested "Default: Self, Select: Others". So init with currentUser.
@@ -56,6 +59,7 @@ struct TaskListView: View {
                                 selectedTask = task
                             }
                         }
+                        .onDelete(perform: deleteIncompleteTasks)
                     }
                 }
                 
@@ -82,6 +86,7 @@ struct TaskListView: View {
                                    selectedTask = task
                                }
                            }
+                           .onDelete(perform: deleteCompletedTasks)
                        }
                     }
                 }
@@ -141,6 +146,13 @@ struct TaskListView: View {
             loadMembers()
             NotificationManager.shared.requestAuthorization()
         }
+        .onChange(of: taskManager.tasks) { newTasks in
+            // Sync notifications for tasks assigned to me
+            if let currentUid = firebaseManager.currentUser?.id {
+                let myTasks = newTasks.filter { $0.assignedTo == currentUid }
+                NotificationManager.shared.syncTaskNotifications(tasks: myTasks)
+            }
+        }
         .sheet(item: $selectedTask) { task in
             TaskEditView(task: task, projectMembers: projectMembers, taskManager: taskManager)
         }
@@ -150,6 +162,39 @@ struct TaskListView: View {
                     Section(header: Text("タスク内容")) {
                         TextField("タイトル", text: $newTaskTitle)
                         TextField("詳細 (任意)", text: $newTaskDescription)
+                    }
+                    
+                    Section(header: Text("チェックリスト")) {
+                        ForEach($newSubtasks) { $subtask in
+                            HStack {
+                                TextField("項目名", text: $subtask.title)
+                                Spacer()
+                                Button {
+                                    if let index = newSubtasks.firstIndex(where: { $0.id == subtask.id }) {
+                                        newSubtasks.remove(at: index)
+                                    }
+                                } label: {
+                                    Image(systemName: "minus.circle.fill")
+                                        .foregroundColor(.red)
+                                }
+                                .buttonStyle(.plain)
+                            }
+                        }
+                        
+                        HStack {
+                            Image(systemName: "plus.circle.fill")
+                                .foregroundColor(.green)
+                            TextField("新しい項目を追加", text: $newSubtaskTitle)
+                                .onSubmit {
+                                    addNewSubtask()
+                                }
+                            
+                            if !newSubtaskTitle.isEmpty {
+                                Button("追加") {
+                                    addNewSubtask()
+                                }
+                            }
+                        }
                     }
                     
                     Section(header: Text("担当者")) {
@@ -194,11 +239,21 @@ struct TaskListView: View {
                     }
                     ToolbarItem(placement: .confirmationAction) {
                         Button("作成") {
-                            createTask()
-                            showCreateTask = false
+                            // Check task count limit
+                            if taskManager.tasks.count >= 300 {
+                                showLimitAlert = true
+                            } else {
+                                createTask()
+                                showCreateTask = false
+                            }
                         }
                         .disabled(newTaskTitle.isEmpty)
                     }
+                }
+                .alert("タスク数の上限", isPresented: $showLimitAlert) {
+                    Button("OK", role: .cancel) { }
+                } message: {
+                    Text("1プロジェクトあたりのタスク数は最大300個までです。不要なタスクを削除してください。")
                 }
                 .sheet(isPresented: $showMemberSelection) {
                     MemberSelectionView(members: projectMembers, selectedAssigneeIds: $selectedAssigneeIds)
@@ -270,7 +325,8 @@ struct TaskListView: View {
                         dueDate: hasDueDate ? newTaskDueDate : nil,
                         assignedTo: nil,
                         createdBy: currentUid,
-                        priority: newTaskPriority
+                        priority: newTaskPriority,
+                        subtasks: newSubtasks
                     )
                 } else {
                     // Create task for each assignee
@@ -282,7 +338,8 @@ struct TaskListView: View {
                             dueDate: hasDueDate ? newTaskDueDate : nil,
                             assignedTo: assigneeId,
                             createdBy: currentUid,
-                            priority: newTaskPriority
+                            priority: newTaskPriority,
+                            subtasks: newSubtasks
                         )
                         
                         // If assigned to self, schedule notification
@@ -307,12 +364,46 @@ struct TaskListView: View {
                 newTaskDescription = ""
                 hasDueDate = false
                 selectedAssigneeIds = []
+                newSubtasks = []
+                newSubtaskTitle = ""
                 
             } catch {
                 print("Error creating task: \(error)")
             }
         }
     }
+
+    
+    private func addNewSubtask() {
+        guard !newSubtaskTitle.isEmpty else { return }
+        let subtask = SubTask(title: newSubtaskTitle)
+        newSubtasks.append(subtask)
+        newSubtaskTitle = ""
+    }
+    
+    private func deleteIncompleteTasks(at offsets: IndexSet) {
+        for index in offsets {
+            let task = incompleteTasks[index]
+            deleteTask(task)
+        }
+    }
+    
+    private func deleteCompletedTasks(at offsets: IndexSet) {
+        for index in offsets {
+            let task = completedTasks[index]
+            deleteTask(task)
+        }
+    }
+    
+    private func deleteTask(_ task: AppTask) {
+        guard let projectId = project.id, let taskId = task.id else { return }
+        Task {
+            do {
+                try await taskManager.deleteTask(projectId: projectId, taskId: taskId)
+                NotificationManager.shared.removeNotification(for: taskId)
+            } catch {
+                print("Error deleting task: \(error)")
+            }
+        }
+    }
 }
-
-

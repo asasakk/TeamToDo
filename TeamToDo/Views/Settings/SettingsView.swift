@@ -4,12 +4,20 @@ import StoreKit
 struct SettingsView: View {
     @Environment(\.dismiss) var dismiss
     @AppStorage("isDarkMode") private var isDarkMode = false
+    @AppStorage("notificationHoursBefore") private var notificationHoursBefore = 6
     @StateObject private var firebaseManager = FirebaseManager.shared
     @Environment(\.requestReview) var requestReview
     
     var body: some View {
         NavigationStack {
             List {
+                Section(header: Text("通知")) {
+                    Stepper("期限の \(notificationHoursBefore) 時間前", value: $notificationHoursBefore, in: 0...48)
+                    Text("タスクの期限の\(notificationHoursBefore)時間前に通知を受け取ります。")
+                        .font(.caption)
+                        .foregroundColor(.gray)
+                }
+
                 Section(header: Text("表示")) {
                     Toggle("ダークモード", isOn: $isDarkMode)
                 }

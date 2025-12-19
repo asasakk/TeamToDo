@@ -12,6 +12,8 @@ struct TaskEditView: View {
     @State private var hasDueDate: Bool
     @State private var priority: TaskPriority
     @State private var selectedAssigneeIds: Set<String> = []
+    @State private var subtasks: [SubTask]
+    @State private var newSubtaskTitle: String = ""
     
     @State private var showMemberSelection = false
     
@@ -36,6 +38,8 @@ struct TaskEditView: View {
         if let assigneeId = task.assignedTo {
             _selectedAssigneeIds = State(initialValue: [assigneeId])
         }
+        
+        _subtasks = State(initialValue: task.subtasks ?? [])
     }
     
     var body: some View {
@@ -44,6 +48,42 @@ struct TaskEditView: View {
                 Section(header: Text("タスク内容")) {
                     TextField("タイトル", text: $title)
                     TextField("詳細 (任意)", text: $description)
+                }
+                
+                Section(header: Text("チェックリスト")) {
+                    ForEach($subtasks) { $subtask in
+                        HStack {
+                            Button {
+                                subtask.isCompleted.toggle()
+                            } label: {
+                                Image(systemName: subtask.isCompleted ? "checkmark.circle.fill" : "circle")
+                                    .foregroundColor(subtask.isCompleted ? .green : .gray)
+                            }
+                            .buttonStyle(.plain)
+                            
+                            TextField("項目名", text: $subtask.title)
+                                .strikethrough(subtask.isCompleted)
+                                .foregroundColor(subtask.isCompleted ? .gray : .primary)
+                        }
+                    }
+                    .onDelete { indexSet in
+                        subtasks.remove(atOffsets: indexSet)
+                    }
+                    
+                    HStack {
+                        Image(systemName: "plus.circle.fill")
+                            .foregroundColor(.green)
+                        TextField("新しい項目を追加", text: $newSubtaskTitle)
+                            .onSubmit {
+                                addSubtask()
+                            }
+                        
+                        if !newSubtaskTitle.isEmpty {
+                            Button("追加") {
+                                addSubtask()
+                            }
+                        }
+                    }
                 }
                 
                 Section(header: Text("担当者")) {
@@ -126,7 +166,8 @@ struct TaskEditView: View {
                     description: description.isEmpty ? nil : description,
                     dueDate: hasDueDate ? dueDate : nil,
                     assignedTo: selectedAssigneeIds.first,
-                    priority: priority
+                    priority: priority,
+                    subtasks: subtasks
                 )
                 dismiss()
             } catch {
@@ -146,5 +187,12 @@ struct TaskEditView: View {
                 print("Error deleting task: \(error)")
             }
         }
+    }
+    
+    private func addSubtask() {
+        guard !newSubtaskTitle.isEmpty else { return }
+        let newSubtask = SubTask(title: newSubtaskTitle)
+        subtasks.append(newSubtask)
+        newSubtaskTitle = ""
     }
 }

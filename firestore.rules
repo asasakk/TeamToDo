@@ -1,0 +1,113 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Helper functions
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isUser(uid) {
+      return isAuthenticated() && request.auth.uid == uid;
+    }
+    
+    // Check if the user is a member of the project
+    // Note: This requires getting the project document.
+    // Be mindful of read costs, but it's necessary for security.
+    function isProjectMember(projectId) {
+      let projectData = get(/databases/$(database)/documents/projects/$(projectId)).data;
+      return isAuthenticated() && (request.auth.uid in projectData.memberIds);
+    }
+
+    // --- Users Collection ---
+    match /users/{userId} {
+      // Authenticated users can read user profiles to display names
+      allow read: if isAuthenticated();
+      // Users can only write their own data
+      allow write: if isUser(userId);
+    }
+
+    // --- Organizations Collection ---
+    match /organizations/{orgId} {
+      // Create: Authenticated users can create organizations
+      // User must be in the 'memberIds' list
+      allow create: if isAuthenticated() 
+                    && request.resource.data.memberIds.hasAll([request.auth.uid])
+                    && request.resource.data.name.size() > 0;
+      
+      // Read: Authenticated users can read. 
+      allow read: if isAuthenticated();
+
+      // Update: Members OR Joining users (adding self)
+      allow update: if isAuthenticated() && (
+        (request.auth.uid in resource.data.memberIds) ||
+        (request.resource.data.memberIds.hasAll(resource.data.memberIds) && 
+         request.resource.data.memberIds.hasAny([request.auth.uid]))
+      );
+      
+      // Delete: Members only (or owner only?)
+      allow delete: if isAuthenticated() && (request.auth.uid in resource.data.memberIds);
+    }
+
+    // --- Projects Collection ---
+    match /projects/{projectId} {
+      // Create: Authenticated users can create projects
+      // Validation: The creating user must be in the memberIds list
+      allow create: if isAuthenticated() 
+                    && request.resource.data.memberIds.hasAll([request.auth.uid])
+                    && request.resource.data.memberIds.size() <= 20 // Max 20 members
+                    && request.resource.data.name.size() > 0
+                    && request.resource.data.name.size() <= 30; // Max 30 chars for name
+
+      // Read: Authenticated users can read all projects (User request: allow viewing even if not a member)
+      allow read: if isAuthenticated();
+      
+      allow update: if isAuthenticated() 
+                    && (request.auth.uid in resource.data.memberIds)
+                    && request.resource.data.memberIds.size() <= 20
+                    && request.resource.data.name.size() > 0
+                    && request.resource.data.name.size() <= 30;
+      
+      // Delete: Only members (or maybe owners? for now members)
+      allow delete: if isAuthenticated() && (request.auth.uid in resource.data.memberIds);
+      
+      // --- Tasks Subcollection ---
+      // Matches /projects/{projectId}/tasks/{taskId}
+      // Since it's nested, we have access to 'projectId' from the parent match.
+      match /tasks/{taskId} {
+         // Rate Limiting: Prevent rapid updates (e.g. loops)
+         // Allow only if 2 seconds have passed since the last update
+         // Rate Limiting: Prevent rapid updates (e.g. loops)
+         // Allow only if 2 seconds have passed since the last update
+         // CHECK: If 'updatedAt' does not exist (first update), allow it.
+         function isNotRateLimited() {
+            return !('updatedAt' in resource.data) || request.time > resource.data.updatedAt + duration.value(2, 's');
+         }
+
+          // Read: Authenticated users can read tasks (Temporary relaxation for list performance)
+         // Ideally should check membership, but 'get' in list queries can be problematic.
+         allow read: if isAuthenticated();
+         
+         // Create: Member of project (Simplified validation)
+         allow create: if isProjectMember(projectId);
+         
+         // Update: Member of project + Rate Limit
+         allow update: if isProjectMember(projectId) && isNotRateLimited();
+         
+         // Delete: Member of project
+         allow delete: if isProjectMember(projectId);
+      }
+    }
+    
+    // Allow Collection Group queries for tasks
+    // When querying collectionGroup('tasks'), Firestore checks if the user can read EACH document.
+    // The rule above (nested in projects) covers documents at projects/{projectId}/tasks/{taskId}.
+    // So if the user is a member of the project, they can read the task, which satisfies the collection group query requirement.
+
+    
+    // Default deny
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

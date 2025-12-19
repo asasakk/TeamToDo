@@ -28,7 +28,7 @@ class TaskManager: ObservableObject {
             }
     }
     
-    func createTask(projectId: String, title: String, description: String?, dueDate: Date?, assignedTo: String?, createdBy: String, priority: TaskPriority = .medium) async throws -> String {
+    func createTask(projectId: String, title: String, description: String?, dueDate: Date?, assignedTo: String?, createdBy: String, priority: TaskPriority = .medium, subtasks: [SubTask]? = nil) async throws -> String {
         let task = AppTask(
             id: nil,
             title: title,
@@ -39,7 +39,8 @@ class TaskManager: ObservableObject {
             createdBy: createdBy,
             createdAt: Date(),
             updatedAt: nil,
-            priority: priority
+            priority: priority,
+            subtasks: subtasks
         )
         
         let ref = try db.collection("projects").document(projectId).collection("tasks").addDocument(from: task)
@@ -60,7 +61,7 @@ class TaskManager: ObservableObject {
         ])
     }
     
-    func updateTask(projectId: String, taskId: String, title: String, description: String?, dueDate: Date?, assignedTo: String?, priority: TaskPriority) async throws {
+    func updateTask(projectId: String, taskId: String, title: String, description: String?, dueDate: Date?, assignedTo: String?, priority: TaskPriority, subtasks: [SubTask]?) async throws {
         var data: [String: Any] = [
             "title": title,
             "updatedAt": Date(),
@@ -79,6 +80,12 @@ class TaskManager: ObservableObject {
         
         if let assignedTo = assignedTo {
             data["assignedTo"] = assignedTo
+        }
+        
+        // Convert subtasks to dictionary array
+        if let subtasks = subtasks {
+            let subtasksData = try subtasks.map { try Firestore.Encoder().encode($0) }
+            data["subtasks"] = subtasksData
         }
         
         try await db.collection("projects").document(projectId).collection("tasks").document(taskId).updateData(data)
