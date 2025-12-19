@@ -4,13 +4,55 @@ import UserNotifications
 class NotificationManager {
     static let shared = NotificationManager()
     
+    
     func requestAuthorization() {
         UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .badge, .sound]) { granted, error in
             if granted {
                 print("Notification permission granted")
+                // 許可されたら直ちに定時通知をスケジュールする
+                DispatchQueue.main.async {
+                    self.updateDailyNotifications()
+                }
             } else if let error = error {
                 print("Notification permission error: \(error.localizedDescription)")
             }
+        }
+    }
+    
+    /// UserSettingsに基づいて定時通知を更新する
+    func updateDailyNotifications() {
+        let notifyAt8 = UserDefaults.standard.bool(forKey: "notifyAt8")
+        let notifyAt12 = UserDefaults.standard.bool(forKey: "notifyAt12")
+        let notifyAt17 = UserDefaults.standard.bool(forKey: "notifyAt17")
+        
+        scheduleDaily(hour: 8, enabled: notifyAt8, title: "朝のタスク確認", body: "今日の予定を確認して、良い一日をスタートしましょう！")
+        scheduleDaily(hour: 12, enabled: notifyAt12, title: "お昼の進捗確認", body: "午前中の作業はお疲れ様でした。残りのタスクも確認しましょう。")
+        scheduleDaily(hour: 17, enabled: notifyAt17, title: "夕方のラストスパート", body: "今日のやり残しはありませんか？明日の準備も済ませておきましょう。")
+    }
+    
+    private func scheduleDaily(hour: Int, enabled: Bool, title: String, body: String) {
+        let identifier = "daily-\(hour)"
+        
+        if enabled {
+            let content = UNMutableNotificationContent()
+            content.title = title
+            content.body = body
+            content.sound = .default
+            
+            var dateComponents = DateComponents()
+            dateComponents.hour = hour
+            dateComponents.minute = 0
+            
+            let trigger = UNCalendarNotificationTrigger(dateMatching: dateComponents, repeats: true)
+            let request = UNNotificationRequest(identifier: identifier, content: content, trigger: trigger)
+            
+            UNUserNotificationCenter.current().add(request) { error in
+                if let error = error {
+                    print("Error scheduling daily notification for \(hour): \(error)")
+                }
+            }
+        } else {
+            UNUserNotificationCenter.current().removePendingNotificationRequests(withIdentifiers: [identifier])
         }
     }
     

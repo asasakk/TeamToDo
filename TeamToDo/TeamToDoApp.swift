@@ -87,6 +87,7 @@ struct TeamToDoApp: App {
     @Environment(\.scenePhase) private var scenePhase
     
     @StateObject private var orgManager = OrganizationManager()
+    @AppStorage("appearanceMode") private var appearanceMode: Int = 0 
     
     var body: some Scene {
         WindowGroup {
@@ -98,6 +99,7 @@ struct TeamToDoApp: App {
                 .onOpenURL { url in
                     handleDeepLink(url)
                 }
+                .preferredColorScheme(appearanceMode == 0 ? nil : (appearanceMode == 1 ? .light : .dark))
         }
     }
     
