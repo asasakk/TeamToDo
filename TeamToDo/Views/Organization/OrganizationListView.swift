@@ -125,8 +125,8 @@ struct OrganizationListView: View {
                 SecureField("パスワード", text: $inputPassword)
                 Button("参加") {
                     Task {
-                        // パスワード照合
-                        if let org = tempOrganization, org.password == inputPassword {
+                        // パスワード照合 (入力値をハッシュ化して比較)
+                        if let org = tempOrganization, org.password == inputPassword.sha256Hash() {
                             if let uid = firebaseManager.currentUser?.id {
                                 do {
                                     try await orgManager.joinOrganization(inviteCode: inviteCodeInput, userId: uid)

@@ -13,7 +13,7 @@ struct SettingsView: View {
             List {
                 Section(header: Text("通知")) {
                     Stepper("期限の \(notificationHoursBefore) 時間前", value: $notificationHoursBefore, in: 0...48)
-                    Text("タスクの期限の\(notificationHoursBefore)時間前に通知を受け取ります。")
+                    Text("他人がアサインしたタスクを通知するには定期的にアプリを開いてタスクを受信してください。バックグラウンドでの通信はできません")
                         .font(.caption)
                         .foregroundColor(.gray)
                 }

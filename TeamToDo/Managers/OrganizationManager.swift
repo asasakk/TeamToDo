@@ -56,13 +56,16 @@ class OrganizationManager: ObservableObject {
     
     func createOrganization(name: String, ownerId: String, password: String? = nil) async throws {
         let inviteCode = String(UUID().uuidString.prefix(6)).uppercased()
+        
+        let hashedPassword = password?.isEmpty == false ? password?.sha256Hash() : nil
+        
         let organization = Organization(
             id: nil,
             name: name,
             ownerId: ownerId,
             memberIds: [ownerId],
             inviteCode: inviteCode,
-            password: password,
+            password: hashedPassword,
             createdAt: Date()
         )
         
@@ -86,7 +89,7 @@ class OrganizationManager: ObservableObject {
     func updateOrganizationPassword(orgId: String, password: String?) async throws {
         let data: [String: Any]
         if let password = password, !password.isEmpty {
-            data = ["password": password]
+            data = ["password": password.sha256Hash()]
         } else {
             data = ["password": FieldValue.delete()]
         }
