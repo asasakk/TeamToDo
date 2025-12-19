@@ -48,3 +48,4 @@ yarn-error.log
 # Firebase
 firebase-debug.log
 .firebase/
+firestore.rules
